@@ -46,8 +46,8 @@ const Dashboard = () => {
       const response = await apiFetch(`/api/info/getIdEmpresa?email=${userEmail}`);
       if (!response.ok) throw new Error('Error al obtener ID de empresa');
       
-      const data = await response.json();
-      setCompanyId(data.company_id);
+      const result = await response.json();
+      setCompanyId(result.data.company_id.toString());
     } catch (error) {
       toast.error('Error al cargar información de empresa');
       console.error(error);
