@@ -6,6 +6,7 @@ import StatsCard from '@/components/StatsCard';
 import AlertCard from '@/components/AlertCard';
 import { MessageSquare, Users, Eye, Database, LogOut, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/api';
 
 interface StatsData {
   total_mentions: number;
@@ -42,7 +43,7 @@ const Dashboard = () => {
 
   const fetchCompanyId = async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/info/getIdEmpresa?email=${userEmail}`);
+      const response = await apiFetch(`/api/info/getIdEmpresa?email=${userEmail}`);
       if (!response.ok) throw new Error('Error al obtener ID de empresa');
       
       const data = await response.json();
@@ -58,11 +59,11 @@ const Dashboard = () => {
     
     setIsLoadingStats(true);
     try {
-      const url = alertId 
-        ? `http://localhost:8000/api/stats/general/overview?company_id=${companyId}&alert_id=${alertId}`
-        : `http://localhost:8000/api/stats/general/overview?company_id=${companyId}`;
+      const endpoint = alertId 
+        ? `/api/stats/general/overview?company_id=${companyId}&alert_id=${alertId}`
+        : `/api/stats/general/overview?company_id=${companyId}`;
       
-      const response = await fetch(url);
+      const response = await apiFetch(endpoint);
       if (!response.ok) throw new Error('Error al obtener estadísticas');
       
       const data = await response.json();
@@ -80,7 +81,7 @@ const Dashboard = () => {
     
     setIsLoadingAlerts(true);
     try {
-      const response = await fetch(`http://localhost:8000/api/info/getAlerts?company_id=${companyId}`);
+      const response = await apiFetch(`/api/info/getAlerts?company_id=${companyId}`);
       if (!response.ok) throw new Error('Error al obtener alertas');
       
       const data = await response.json();

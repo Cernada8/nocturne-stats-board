@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/api';
 
 interface AuthContextType {
   token: string | null;
@@ -37,12 +38,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const response = await fetch('http://localhost:8000/api/login', {
+      const response = await apiFetch('/api/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ email, password }),
+        skipAuth: true, // No enviar token en el login
       });
 
       if (!response.ok) {
