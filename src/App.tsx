@@ -6,8 +6,17 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Alcance from "./pages/Alcance";
+import Estadisticas from "./pages/Estadisticas";
+import Rankings from "./pages/Rankings";
+import RankingAlertas from "./pages/RankingAlertas";
+import RankingAutores from "./pages/RankingAutores";
+import RankingPaises from "./pages/RankingPaises";
+import RankingFuentes from "./pages/RankingFuentes";
+import RankingLenguajes from "./pages/RankingLenguajes";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
+import Sentimiento from "./pages/Sentimiento";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +35,78 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/estadisticas" 
+              element={
+                <ProtectedRoute>
+                  <Estadisticas />
+                </ProtectedRoute>
+              } 
+            />
+             <Route 
+              path="/alcance" 
+              element={
+                <ProtectedRoute>
+                  <Alcance />
+                </ProtectedRoute>
+              } 
+            />
+             <Route 
+              path="/sentimiento" 
+              element={
+                <ProtectedRoute>
+                  <Sentimiento />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/rankings" 
+              element={
+                <ProtectedRoute>
+                  <Rankings />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/rankings/alertas" 
+              element={
+                <ProtectedRoute>
+                  <RankingAlertas />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/rankings/autores" 
+              element={
+                <ProtectedRoute>
+                  <RankingAutores />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/rankings/paises" 
+              element={
+                <ProtectedRoute>
+                  <RankingPaises />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/rankings/fuentes" 
+              element={
+                <ProtectedRoute>
+                  <RankingFuentes />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/rankings/lenguajes" 
+              element={
+                <ProtectedRoute>
+                  <RankingLenguajes />
                 </ProtectedRoute>
               } 
             />

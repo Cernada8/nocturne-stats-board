@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import AuroraBackground from '@/components/AuroraBackground';
-import { Loader2, LogIn } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import MathBackground from '@/components/MathBackground';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -27,60 +28,68 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <AuroraBackground />
+      <MathBackground />
       
-      <Card className="glass-card w-full max-w-md p-8 space-y-6 animate-fade-in">
-        <div className="text-center space-y-2">
-          <div className="mx-auto w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center mb-4">
-            <LogIn className="w-8 h-8 text-primary-foreground" />
-          </div>
-          <h1 className="text-3xl font-bold text-foreground">Iniciar sesión</h1>
-          <p className="text-muted-foreground">Accede a tu panel de control</p>
+      <div className="w-full max-w-md space-y-8 animate-fade-in">
+        {/* Logo */}
+        <div className="flex justify-center">
+          <img 
+            src="/assets/logo_ADGCO.png" 
+            alt="ADGCO Logo" 
+            className="h-24 w-auto object-contain drop-shadow-2xl"
+          />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-foreground">Correo electrónico</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="tu@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="glass-effect border-white/10 focus:border-primary bg-transparent text-foreground placeholder:text-muted-foreground"
-            />
+        <Card className="glass-card p-8 space-y-6">
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-bold text-foreground">Iniciar sesión</h1>
+            <p className="text-muted-foreground">Accede a tu panel de control</p>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-foreground">Contraseña</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="glass-effect border-white/10 focus:border-primary bg-transparent text-foreground placeholder:text-muted-foreground"
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-foreground">Correo electrónico</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="tu@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="glass-effect border-white/10 focus:border-primary bg-transparent text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
 
-          <Button
-            type="submit"
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-6 rounded-xl transition-all duration-300 hover:scale-[1.02]"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Cargando...
-              </>
-            ) : (
-              'Entrar'
-            )}
-          </Button>
-        </form>
-      </Card>
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-foreground">Contraseña</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="glass-effect border-white/10 focus:border-primary bg-transparent text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-6 rounded-xl transition-all duration-300 hover:scale-[1.02]"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Cargando...
+                </>
+              ) : (
+                'Entrar'
+              )}
+            </Button>
+          </form>
+        </Card>
+      </div>
     </div>
   );
 };
