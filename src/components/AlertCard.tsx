@@ -1,5 +1,5 @@
 import { Card } from '@/components/ui/card';
-import { Bell } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 
 interface AlertCardProps {
   id: string;
@@ -22,7 +22,7 @@ const AlertCard = ({ id, name, onClick, isActive }: AlertCardProps) => {
         <div className={`p-3 rounded-xl transition-all duration-300 ${
           isActive ? 'bg-primary/30 scale-110' : 'bg-accent/20'
         }`}>
-          <Bell className={`w-5 h-5 transition-colors duration-300 ${
+          <BookOpen className={`w-5 h-5 transition-colors duration-300 ${
             isActive ? 'text-primary-foreground' : 'text-accent-foreground'
           }`} />
         </div>

@@ -14,7 +14,7 @@ import {
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
-function Calendar({ className, classNames, showOutsideDays = true, ...props }: CalendarProps) {
+function Calendar({ className, classNames, showOutsideDays = true, ... props }: CalendarProps) {
   // Usar el mes de las props si existe, sino el actual
   const initialMonth = props.month || (props.selected instanceof Date ? props.selected : new Date());
   const [month, setMonth] = React.useState<Date>(initialMonth);

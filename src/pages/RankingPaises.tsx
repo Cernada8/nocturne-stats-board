@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import Sidebar from '@/components/Sidebar';
-import { LogOut, Loader2, CalendarDays, ArrowLeft } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiFetch } from '@/lib/api';
 import { format } from 'date-fns';
@@ -38,7 +38,6 @@ const RankingPaises = () => {
 
   const limitOptions = [5, 10, 20, 50, 100];
 
-  // Mapeo de códigos ISO a nombres de países en español
   const countryNames: Record<string, string> = {
     'ES': 'España',
     'MX': 'México',
@@ -79,7 +78,6 @@ const RankingPaises = () => {
   };
 
   const getCountryFlag = (code: string): string => {
-    // Convertir código ISO a emoji de bandera
     const codePoints = code
       .toUpperCase()
       .split('')
@@ -146,47 +144,71 @@ const RankingPaises = () => {
   };
 
   return (
-    <div className="min-h-screen max-h-screen overflow-hidden flex">
+    <div className="min-h-screen max-h-screen overflow-hidden flex flex-col lg:flex-row">
       <SoftMathBackground />
       <Sidebar />
       
-      <div className="flex-1 p-6 overflow-y-auto relative z-10">
-        <div className="max-w-7xl mx-auto space-y-6">
-         <Header/>
+      <div className="flex-1 overflow-y-auto relative z-10 scrollbar-thin scrollbar-thumb-slate-700/50 scrollbar-track-slate-900/50 hover:scrollbar-thumb-slate-600/70">
+        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-4 sm:space-y-6">
+          <Header/>
 
           {/* Title with back button */}
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
             <Button
               onClick={() => navigate('/rankings')}
               variant="outline"
-              className="glass-effect border-white/10 hover:bg-white/10 text-white"
+              className="glass-effect border-white/10 hover:bg-white/10 text-white shrink-0"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Volver</span>
             </Button>
-            <div>
-              <h1 className="text-4xl font-bold text-white mb-2">Ranking de Países</h1>
-              <p className="text-white/70">Distribución geográfica de menciones</p>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-1 sm:mb-2">
+                Ranking de Países
+              </h1>
+              <p className="text-sm sm:text-base text-white/70">
+                Distribución geográfica de menciones
+              </p>
             </div>
           </div>
 
           {/* Filters */}
-          <div className="flex gap-4 items-center flex-wrap">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center flex-wrap">
             {/* Date Range Picker */}
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="glass-effect border-white/10 hover:bg-white/10 text-white"
+                  className="glass-effect border-white/10 hover:bg-white/10 text-white w-full sm:w-auto text-sm"
                 >
-                  <CalendarDays className="mr-2 h-4 w-4" />
-                  {dateRange.from && dateRange.to ? (
-                    `${format(dateRange.from, 'dd MMM yyyy', { locale: es })} - ${format(dateRange.to, 'dd MMM yyyy', { locale: es })}`
-                  ) : (
-                    'Seleccionar fechas'
-                  )}
+                  <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                  <span className="truncate">
+                    {dateRange.from && dateRange.to ? (
+                      <>
+                        <span className="hidden md:inline">
+                          {format(dateRange.from, 'dd MMM yyyy', { locale: es })} - {format(dateRange.to, 'dd MMM yyyy', { locale: es })}
+                        </span>
+                        <span className="md:hidden">
+                          {format(dateRange.from, 'dd/MM/yy')} - {format(dateRange.to, 'dd/MM/yy')}
+                        </span>
+                      </>
+                    ) : (
+                      'Seleccionar fechas'
+                    )}
+                  </span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 glass-card border-white/10" align="start">
+                <Calendar
+                  mode="range"
+                  selected={{ from: dateRange.from, to: dateRange.to }}
+                  onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
+                  numberOfMonths={1}
+                  locale={es}
+                  fromYear={1960}
+                  toYear={2030}
+                  className="sm:hidden"
+                />
                 <Calendar
                   mode="range"
                   selected={{ from: dateRange.from, to: dateRange.to }}
@@ -195,6 +217,7 @@ const RankingPaises = () => {
                   locale={es}
                   fromYear={1960}
                   toYear={2030}
+                  className="hidden sm:block"
                 />
               </PopoverContent>
             </Popover>
@@ -204,7 +227,7 @@ const RankingPaises = () => {
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="glass-effect border-white/10 hover:bg-white/10 text-white"
+                  className="glass-effect border-white/10 hover:bg-white/10 text-white w-full sm:w-auto text-xs sm:text-sm"
                 >
                   Mostrar: {limit}
                 </Button>
@@ -215,7 +238,8 @@ const RankingPaises = () => {
                     <Button
                       key={option}
                       variant="ghost"
-                      className={`w-full justify-start text-white hover:bg-white/10 ${
+                      size="sm"
+                      className={`w-full justify-start text-white hover:bg-white/10 text-xs sm:text-sm ${
                         limit === option ? 'bg-white/10' : ''
                       }`}
                       onClick={() => setLimit(option)}
@@ -229,9 +253,9 @@ const RankingPaises = () => {
 
             {/* Total Mentions */}
             {rankingData && (
-              <div className="ml-auto glass-card px-4 py-2 border border-white/10">
-                <p className="text-sm text-white/70">Total de menciones</p>
-                <p className="text-xl font-bold text-white">
+              <div className="glass-card px-3 sm:px-4 py-2 border border-white/10 w-full sm:w-auto sm:ml-auto">
+                <p className="text-xs sm:text-sm text-white/70">Total de menciones</p>
+                <p className="text-lg sm:text-xl font-bold text-white">
                   {rankingData.total_mentions.toLocaleString()}
                 </p>
               </div>
@@ -240,49 +264,51 @@ const RankingPaises = () => {
 
           {/* Rankings List */}
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-transparent to-cyan-500/10 blur-3xl"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-transparent to-cyan-500/10 blur-3xl rounded-2xl"></div>
             
-            <div className="relative p-4">
+            <div className="relative p-0 sm:p-4">
               {isLoading ? (
-                <div className="flex justify-center items-center h-96">
-                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <div className="flex justify-center items-center h-[300px] sm:h-[400px]">
+                  <Loader2 className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 animate-spin text-primary" />
                 </div>
               ) : rankingData && rankingData.countries.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-3 sm:space-y-4">
                   {rankingData.countries.map((country, index) => (
                     <div
                       key={index}
-                      className="glass-card p-6 border border-white/10 hover:bg-white/10 transition-all duration-300"
+                      className="glass-card p-4 sm:p-5 lg:p-6 border border-white/10 hover:bg-white/10 transition-all duration-300 rounded-xl"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4 flex-1">
-                          <div className="text-4xl font-bold text-white drop-shadow-[0_0_15px_rgba(34,211,238,0.8)]">
+                      <div className="flex flex-col gap-4">
+                        {/* Top section: Position + Flag + Country name */}
+                        <div className="flex items-center gap-3 sm:gap-4">
+                          <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white drop-shadow-[0_0_15px_rgba(34,211,238,0.8)] shrink-0">
                             #{index + 1}
                           </div>
                           
                           {/* Flag */}
-                          <div className="text-5xl">
+                          <div className="text-3xl sm:text-4xl lg:text-5xl shrink-0">
                             {getCountryFlag(country.country)}
                           </div>
 
-                          <div className="flex-1">
-                            <h3 className="text-xl font-bold text-white">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-base sm:text-lg lg:text-xl font-bold text-white truncate">
                               {getCountryName(country.country)}
                             </h3>
-                            <p className="text-sm text-white/70">
+                            <p className="text-xs sm:text-sm text-white/70">
                               {country.country}
                             </p>
                           </div>
                         </div>
 
-                        <div className="flex gap-8 items-center">
+                        {/* Stats section */}
+                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 lg:gap-8 sm:items-center">
                           {/* Progress Bar */}
-                          <div className="w-48">
-                            <div className="flex justify-between text-sm mb-1">
+                          <div className="flex-1">
+                            <div className="flex justify-between text-xs sm:text-sm mb-1 sm:mb-2">
                               <span className="text-white/70">Porcentaje</span>
                               <span className="text-white font-bold">{country.percentage.toFixed(1)}%</span>
                             </div>
-                            <div className="h-3 bg-white/10 rounded-full overflow-hidden">
+                            <div className="h-2 sm:h-3 bg-white/10 rounded-full overflow-hidden">
                               <div 
                                 className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full transition-all duration-500"
                                 style={{ width: `${Math.min(country.percentage, 100)}%` }}
@@ -291,11 +317,11 @@ const RankingPaises = () => {
                           </div>
 
                           {/* Mentions */}
-                          <div className="text-right min-w-[120px]">
-                            <p className="text-2xl font-bold text-white">
+                          <div className="text-center sm:text-right sm:min-w-[100px] lg:min-w-[120px]">
+                            <p className="text-lg sm:text-xl lg:text-2xl font-bold text-white">
                               {country.mentions.toLocaleString()}
                             </p>
-                            <p className="text-sm text-white/70">Menciones</p>
+                            <p className="text-xs sm:text-sm text-white/70">Menciones</p>
                           </div>
                         </div>
                       </div>
@@ -303,7 +329,7 @@ const RankingPaises = () => {
                   ))}
                 </div>
               ) : (
-                <div className="flex justify-center items-center h-96 text-white/70">
+                <div className="flex justify-center items-center h-[300px] sm:h-[400px] text-sm sm:text-base text-white/70">
                   No hay datos disponibles para el rango seleccionado
                 </div>
               )}

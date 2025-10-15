@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import Sidebar from '@/components/Sidebar';
-import { LogOut, Loader2, CalendarIcon, ArrowLeft, ExternalLink } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, ArrowLeft, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiFetch } from '@/lib/api';
 import { format } from 'date-fns';
@@ -36,8 +36,8 @@ const RankingAutores = () => {
   const navigate = useNavigate();
 
   const orderOptions = [
-    { value: 'audience' as const, label: 'Audiencia' },
-    { value: 'mentions' as const, label: 'Menciones' }
+    { value: 'audience' as const, label: 'Audiencia', shortLabel: 'Aud.' },
+    { value: 'mentions' as const, label: 'Menciones', shortLabel: 'Menc.' }
   ];
 
   const limitOptions = [5, 10, 20, 50];
@@ -98,47 +98,71 @@ const RankingAutores = () => {
   };
 
   return (
-    <div className="min-h-screen max-h-screen overflow-hidden flex">
+    <div className="min-h-screen max-h-screen overflow-hidden flex flex-col lg:flex-row">
       <SoftMathBackground />
       <Sidebar />
       
-      <div className="flex-1 p-6 overflow-y-auto relative z-10">
-        <div className="max-w-7xl mx-auto space-y-6">
-       <Header/>
+      <div className="flex-1 overflow-y-auto relative z-10 scrollbar-thin scrollbar-thumb-slate-700/50 scrollbar-track-slate-900/50 hover:scrollbar-thumb-slate-600/70">
+        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-4 sm:space-y-6">
+          <Header/>
 
           {/* Title with back button */}
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
             <Button
               onClick={() => navigate('/rankings')}
               variant="outline"
-              className="glass-effect border-white/10 hover:bg-white/10 text-white"
+              className="glass-effect border-white/10 hover:bg-white/10 text-white shrink-0"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Volver</span>
             </Button>
-            <div>
-              <h1 className="text-4xl font-bold text-white mb-2">Ranking de Autores</h1>
-              <p className="text-white/70">Top de autores ordenados por audiencia o menciones</p>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-1 sm:mb-2">
+                Ranking de Autores
+              </h1>
+              <p className="text-sm sm:text-base text-white/70">
+                Top de autores ordenados por audiencia o menciones
+              </p>
             </div>
           </div>
 
           {/* Filters */}
-          <div className="flex gap-4 items-center flex-wrap">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center flex-wrap">
             {/* Date Range Picker */}
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="glass-effect border-white/10 hover:bg-white/10 text-white"
+                  className="glass-effect border-white/10 hover:bg-white/10 text-white w-full sm:w-auto text-sm"
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange.from && dateRange.to ? (
-                    `${format(dateRange.from, 'dd MMM yyyy', { locale: es })} - ${format(dateRange.to, 'dd MMM yyyy', { locale: es })}`
-                  ) : (
-                    'Seleccionar fechas'
-                  )}
+                  <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                  <span className="truncate">
+                    {dateRange.from && dateRange.to ? (
+                      <>
+                        <span className="hidden md:inline">
+                          {format(dateRange.from, 'dd MMM yyyy', { locale: es })} - {format(dateRange.to, 'dd MMM yyyy', { locale: es })}
+                        </span>
+                        <span className="md:hidden">
+                          {format(dateRange.from, 'dd/MM/yy')} - {format(dateRange.to, 'dd/MM/yy')}
+                        </span>
+                      </>
+                    ) : (
+                      'Seleccionar fechas'
+                    )}
+                  </span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 glass-card border-white/10" align="start">
+                <Calendar
+                  mode="range"
+                  selected={{ from: dateRange.from, to: dateRange.to }}
+                  onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
+                  numberOfMonths={1}
+                  locale={es}
+                  fromYear={1960}
+                  toYear={2030}
+                  className="sm:hidden"
+                />
                 <Calendar
                   mode="range"
                   selected={{ from: dateRange.from, to: dateRange.to }}
@@ -147,24 +171,27 @@ const RankingAutores = () => {
                   locale={es}
                   fromYear={1960}
                   toYear={2030}
+                  className="hidden sm:block"
                 />
               </PopoverContent>
             </Popover>
 
             {/* Order By Selector */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 w-full sm:w-auto">
               {orderOptions.map((option) => (
                 <Button
                   key={option.value}
                   onClick={() => setOrderBy(option.value)}
-                  className={`transition-all duration-300 ${
+                  className={`flex-1 sm:flex-none transition-all duration-300 text-xs sm:text-sm ${
                     orderBy === option.value
                       ? 'bg-primary/20 border border-cyan-300/60 shadow-xl shadow-cyan-400/30 scale-105 hover:bg-primary/20 text-white'
                       : 'glass-effect border-white/10 hover:bg-white/10 text-white'
                   }`}
                   variant={orderBy === option.value ? 'default' : 'outline'}
+                  size="sm"
                 >
-                  {option.label}
+                  <span className="sm:hidden">{option.shortLabel}</span>
+                  <span className="hidden sm:inline">{option.label}</span>
                 </Button>
               ))}
             </div>
@@ -174,7 +201,7 @@ const RankingAutores = () => {
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="glass-effect border-white/10 hover:bg-white/10 text-white"
+                  className="glass-effect border-white/10 hover:bg-white/10 text-white w-full sm:w-auto text-xs sm:text-sm"
                 >
                   Mostrar: {limit}
                 </Button>
@@ -185,7 +212,8 @@ const RankingAutores = () => {
                     <Button
                       key={option}
                       variant="ghost"
-                      className={`w-full justify-start text-white hover:bg-white/10 ${
+                      size="sm"
+                      className={`w-full justify-start text-white hover:bg-white/10 text-xs sm:text-sm ${
                         limit === option ? 'bg-white/10' : ''
                       }`}
                       onClick={() => setLimit(option)}
@@ -200,28 +228,29 @@ const RankingAutores = () => {
 
           {/* Rankings List */}
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-transparent to-cyan-500/10 blur-3xl"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-transparent to-cyan-500/10 blur-3xl rounded-2xl"></div>
             
-            <div className="relative p-4">
+            <div className="relative p-0 sm:p-4">
               {isLoading ? (
-                <div className="flex justify-center items-center h-96">
-                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <div className="flex justify-center items-center h-[300px] sm:h-[400px]">
+                  <Loader2 className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 animate-spin text-primary" />
                 </div>
               ) : rankings.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-3 sm:space-y-4">
                   {rankings.map((author, index) => (
                     <div
                       key={index}
-                      className="glass-card p-6 border border-white/10 hover:bg-white/10 transition-all duration-300"
+                      className="glass-card p-4 sm:p-5 lg:p-6 border border-white/10 hover:bg-white/10 transition-all duration-300 rounded-xl"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="text-4xl font-bold text-white drop-shadow-[0_0_15px_rgba(34,211,238,0.8)]">
+                      <div className="flex flex-col gap-4">
+                        {/* Top section: Position + Avatar + Author info */}
+                        <div className="flex items-center gap-3 sm:gap-4">
+                          <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white drop-shadow-[0_0_15px_rgba(34,211,238,0.8)] shrink-0">
                             #{index + 1}
                           </div>
                           
                           {/* Avatar */}
-                          <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-cyan-400/50 shadow-lg shadow-cyan-400/30">
+                          <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 border-cyan-400/50 shadow-lg shadow-cyan-400/30 shrink-0">
                             {author.avatar ? (
                               <img 
                                 src={author.avatar} 
@@ -233,44 +262,48 @@ const RankingAutores = () => {
                                 }}
                               />
                             ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white text-xl font-bold">
+                              <div className="w-full h-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white text-lg sm:text-xl font-bold">
                                 {author.author.charAt(0).toUpperCase()}
                               </div>
                             )}
                           </div>
 
-                          <div>
+                          {/* Author info */}
+                          <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <h3 className="text-xl font-bold text-white">{author.author}</h3>
+                              <h3 className="text-base sm:text-lg lg:text-xl font-bold text-white truncate">
+                                {author.author}
+                              </h3>
                               {author.url && (
                                 <a 
                                   href={author.url} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
-                                  className="text-cyan-400 hover:text-cyan-300 transition-colors"
+                                  className="text-cyan-400 hover:text-cyan-300 transition-colors shrink-0"
                                 >
-                                  <ExternalLink className="h-4 w-4" />
+                                  <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4" />
                                 </a>
                               )}
                             </div>
-                            <p className="text-sm text-white/70">
+                            <p className="text-xs sm:text-sm text-white/70">
                               {author.sources_count} {author.sources_count === 1 ? 'fuente' : 'fuentes'}
                             </p>
                           </div>
                         </div>
 
-                        <div className="flex gap-8 text-right">
-                          <div>
-                            <p className="text-2xl font-bold text-white">
+                        {/* Stats section - horizontal in mobile, stays horizontal in all sizes */}
+                        <div className="flex gap-4 sm:gap-6 lg:gap-8 justify-between sm:justify-end pl-0 sm:pl-0">
+                          <div className="text-center sm:text-right">
+                            <p className="text-lg sm:text-xl lg:text-2xl font-bold text-white">
                               {author.mentions.toLocaleString()}
                             </p>
-                            <p className="text-sm text-white/70">Menciones</p>
+                            <p className="text-xs sm:text-sm text-white/70">Menciones</p>
                           </div>
-                          <div>
-                            <p className="text-2xl font-bold text-white">
+                          <div className="text-center sm:text-right">
+                            <p className="text-lg sm:text-xl lg:text-2xl font-bold text-white">
                               {author.total_audience.toLocaleString()}
                             </p>
-                            <p className="text-sm text-white/70">Audiencia</p>
+                            <p className="text-xs sm:text-sm text-white/70">Audiencia</p>
                           </div>
                         </div>
                       </div>
@@ -278,7 +311,7 @@ const RankingAutores = () => {
                   ))}
                 </div>
               ) : (
-                <div className="flex justify-center items-center h-96 text-white/70">
+                <div className="flex justify-center items-center h-[300px] sm:h-[400px] text-sm sm:text-base text-white/70">
                   No hay datos disponibles para el rango seleccionado
                 </div>
               )}

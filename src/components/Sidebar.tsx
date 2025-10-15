@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, TrendingUp, Trophy, Menu, X } from 'lucide-react';
+import { Home, TrendingUp, Trophy, Menu, X, MapIcon, Swords, CloudIcon } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const Sidebar = () => {
@@ -25,7 +25,24 @@ const Sidebar = () => {
       name: 'Rankings',
       icon: Trophy,
       path: '/rankings'
-    }
+    },
+     {
+      id: 'mapa-calor',
+      name: 'Mapa de calor',
+      icon: MapIcon,
+      path: '/mapa-calor'
+    },
+    {
+      id: 'comparador',
+      name: 'Comparar topicos',
+      icon: Swords,
+      path: '/comparador'
+    }, {
+      id: 'topicCloud',
+      name: 'Nube de palabras',
+      icon: CloudIcon,
+      path: '/topicCloud'
+    },
   ];
 
   return (

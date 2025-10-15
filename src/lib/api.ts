@@ -1,6 +1,6 @@
 import { toast } from 'sonner';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'https://argos.adgtravel.com';
 
 interface FetchOptions extends RequestInit {
   skipAuth?: boolean;

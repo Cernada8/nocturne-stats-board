@@ -17,6 +17,14 @@ import RankingLenguajes from "./pages/RankingLenguajes";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 import Sentimiento from "./pages/Sentimiento";
+import InformeSentimiento from "./pages/InformeSentimiento";
+import GeneroEdad from "./pages/GeneroEdad";
+import Fuentes from "./pages/Fuentes";
+import Paises from "./pages/Paises";
+import MapaCalor from "./pages/MapaCalor";
+import Comparador from "./pages/Comparador";
+import ComparandoTopicos from "./pages/ComparandoTopicos";
+import TopicCloud from "./pages/TopicCloud";
 
 const queryClient = new QueryClient();
 
@@ -62,6 +70,14 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+             <Route 
+              path="/informeSentimiento" 
+              element={
+                <ProtectedRoute>
+                  <InformeSentimiento />
+                </ProtectedRoute>
+              } 
+            />
             <Route 
               path="/rankings" 
               element={
@@ -83,6 +99,62 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <RankingAutores />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/fuentes" 
+              element={
+                <ProtectedRoute>
+                  <Fuentes />
+                </ProtectedRoute>
+              } 
+            />
+             <Route 
+              path="/paises" 
+              element={
+                <ProtectedRoute>
+                  <Paises />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/mapa-calor" 
+              element={
+                <ProtectedRoute>
+                  <MapaCalor />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/comparador" 
+              element={
+                <ProtectedRoute>
+                  <Comparador />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/comparandoTopicos" 
+              element={
+                <ProtectedRoute>
+                  <ComparandoTopicos />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/topicCLoud" 
+              element={
+                <ProtectedRoute>
+                  <TopicCloud />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/genero-edad" 
+              element={
+                <ProtectedRoute>
+                  <GeneroEdad />
                 </ProtectedRoute>
               } 
             />

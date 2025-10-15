@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import Sidebar from '@/components/Sidebar';
-import { Loader2, CalendarIcon, BellIcon, TrendingUp, Users, Hash } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, BookOpen, TrendingUp, Users, Hash, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiFetch } from '@/lib/api';
 import { format } from 'date-fns';
@@ -12,6 +12,7 @@ import { es } from 'date-fns/locale';
 import { ResponsiveContainer, Area, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip, BarChart, Bar, Cell } from 'recharts';
 import SoftMathBackground from '@/components/SoftMathBackground';
 import Header from '@/components/Header';
+import { useNavigate } from 'react-router-dom';
 
 interface ReachData {
   date: string | number;
@@ -41,6 +42,7 @@ interface KeywordData {
 
 const Alcance = () => {
   const { userEmail, companyId, setCompanyId } = useAuth();
+  const navigate = useNavigate();
   const [reachData, setReachData] = useState<ReachData[]>([]);
   const [authorsData, setAuthorsData] = useState<AuthorData[]>([]);
   const [keywordsData, setKeywordsData] = useState<KeywordData[]>([]);
@@ -53,16 +55,14 @@ const Alcance = () => {
     to: new Date()
   });
   const [interval, setInterval] = useState<'day' | 'week' | 'month' | 'year'>('month');
-  
-  // Filtros para drivers
   const [driverLimit, setDriverLimit] = useState(10);
   const [driverWeight, setDriverWeight] = useState<'reach' | 'mentions'>('reach');
 
   const intervals = [
-    { value: 'day' as const, label: 'Diario' },
-    { value: 'week' as const, label: 'Semanal' },
-    { value: 'month' as const, label: 'Mensual' },
-    { value: 'year' as const, label: 'Anual' }
+    { value: 'day' as const, label: 'Diario', shortLabel: 'D' },
+    { value: 'week' as const, label: 'Semanal', shortLabel: 'S' },
+    { value: 'month' as const, label: 'Mensual', shortLabel: 'M' },
+    { value: 'year' as const, label: 'Anual', shortLabel: 'A' }
   ];
 
   const weightOptions = [
@@ -199,9 +199,9 @@ const Alcance = () => {
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="glass-card p-4 border border-cyan-300/30 shadow-xl shadow-cyan-400/20">
-          <p className="text-sm text-white/70">{payload[0].payload.date}</p>
-          <p className="text-lg font-bold text-white">
+        <div className="glass-card p-3 sm:p-4 border border-cyan-300/30 shadow-xl shadow-cyan-400/20">
+          <p className="text-xs sm:text-sm text-white/70">{payload[0].payload.date}</p>
+          <p className="text-base sm:text-lg font-bold text-white">
             Alcance: {payload[0].value.toLocaleString()}
           </p>
         </div>
@@ -214,9 +214,9 @@ const Alcance = () => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="glass-card p-4 border border-cyan-300/30 shadow-xl shadow-cyan-400/20">
-          <p className="text-cyan-300 font-bold mb-2">{data.author || data.keyword}</p>
-          <p className="text-white text-sm">
+        <div className="glass-card p-3 sm:p-4 border border-cyan-300/30 shadow-xl shadow-cyan-400/20">
+          <p className="text-cyan-300 font-bold mb-2 text-sm sm:text-base">{data.author || data.keyword}</p>
+          <p className="text-white text-xs sm:text-sm">
             Alcance: <span className="font-bold text-cyan-400">{data.total_reach.toLocaleString()}</span>
           </p>
           <p className="text-white/70 text-xs mt-1">
@@ -229,16 +229,8 @@ const Alcance = () => {
   };
 
   const gradientColors = [
-    '#22d3ee',
-    '#3b82f6',
-    '#8b5cf6',
-    '#ec4899',
-    '#f97316',
-    '#22c55e',
-    '#eab308',
-    '#f43f5e',
-    '#a855f7',
-    '#0ea5e9'
+    '#22d3ee', '#3b82f6', '#8b5cf6', '#ec4899', '#f97316',
+    '#22c55e', '#eab308', '#f43f5e', '#a855f7', '#0ea5e9'
   ];
 
   const shouldShowDots = reachData.length <= 30;
@@ -249,70 +241,93 @@ const Alcance = () => {
       <Sidebar />
       
       <div className="flex-1 overflow-y-auto relative z-10 scrollbar-thin scrollbar-thumb-slate-700/50 scrollbar-track-slate-900/50 hover:scrollbar-thumb-slate-600/70">
-        <div className="p-8 max-w-7xl mx-auto space-y-8">
+        <div className="p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl mx-auto space-y-4 sm:space-y-6 lg:space-y-8">
           <Header />
 
-          {/* Title */}
-          <div>
-            <h1 className="text-4xl font-bold text-white mb-2">Análisis de Alcance</h1>
-            <p className="text-white/70">Dashboard completo de métricas y engagement</p>
+          {/* Title with Back Button - Responsive */}
+          <div className="flex items-center gap-3 sm:gap-4">
+            <Button
+              onClick={() => navigate('/estadisticas')}
+              variant="outline"
+              size="icon"
+              className="glass-effect border-white/10 hover:bg-white/10 text-white h-8 w-8 sm:h-10 sm:w-10"
+            >
+              <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+            </Button>
+            <div>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-1 sm:mb-2">
+                Análisis de Alcance
+              </h1>
+              <p className="text-xs sm:text-sm lg:text-base text-white/70">
+                Dashboard completo de métricas y engagement
+              </p>
+            </div>
           </div>
 
-          {/* Filters */}
-          <div className="flex gap-4 items-center flex-wrap">
-            {/* Alert Selector */}
+          {/* Filters - Responsive */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="glass-effect border-white/10 hover:bg-white/10 text-white w-[240px] justify-between"
+                  className="glass-effect border-white/10 hover:bg-white/10 text-white w-full sm:w-[240px] justify-between text-sm"
                 >
-                  {selectedAlertId 
-                    ? alerts.find(a => a.id === selectedAlertId)?.name 
-                    : "Todas las alertas"}
-                  <BellIcon className="ml-2 h-4 w-4" />
+                  <span className="truncate">
+                    {selectedAlertId 
+                      ? alerts.find(a => a.id === selectedAlertId)?.name 
+                      : "Todos los tópicos"}
+                  </span>
+                  <BookOpen className="ml-2 h-4 w-4 flex-shrink-0" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[240px] p-2 glass-card border-white/10" align="start">
+              <PopoverContent className="w-[calc(100vw-2rem)] sm:w-[240px] p-2 glass-card border-white/10" align="start">
                 <div className="space-y-1">
                   <Button
                     variant="ghost"
-                    className={`w-full justify-start text-white hover:bg-white/10 ${
+                    className={`w-full justify-start text-white hover:bg-white/10 text-sm ${
                       !selectedAlertId ? 'bg-white/10' : ''
                     }`}
                     onClick={() => setSelectedAlertId(null)}
                   >
-                    Todas las alertas
+                    Todos los tópicos
                   </Button>
                   {alerts.map((alert) => (
                     <Button
                       key={alert.id}
                       variant="ghost"
-                      className={`w-full justify-start text-white hover:bg-white/10 ${
+                      className={`w-full justify-start text-white hover:bg-white/10 text-sm ${
                         selectedAlertId === alert.id ? 'bg-white/10' : ''
                       }`}
                       onClick={() => setSelectedAlertId(alert.id)}
                     >
-                      {alert.name}
+                      <span className="truncate">{alert.name}</span>
                     </Button>
                   ))}
                 </div>
               </PopoverContent>
             </Popover>
 
-            {/* Date Range Picker */}
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="glass-effect border-white/10 hover:bg-white/10 text-white"
+                  className="glass-effect border-white/10 hover:bg-white/10 text-white w-full sm:w-auto text-sm"
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange.from && dateRange.to ? (
-                    `${format(dateRange.from, 'dd MMM yyyy', { locale: es })} - ${format(dateRange.to, 'dd MMM yyyy', { locale: es })}`
-                  ) : (
-                    'Seleccionar fechas'
-                  )}
+                  <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">
+                    {dateRange.from && dateRange.to ? (
+                      <>
+                        <span className="hidden md:inline">
+                          {format(dateRange.from, 'dd MMM yyyy', { locale: es })} - {format(dateRange.to, 'dd MMM yyyy', { locale: es })}
+                        </span>
+                        <span className="md:hidden">
+                          {format(dateRange.from, 'dd/MM/yy')} - {format(dateRange.to, 'dd/MM/yy')}
+                        </span>
+                      </>
+                    ) : (
+                      'Seleccionar fechas'
+                    )}
+                  </span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 glass-card border-white/10" align="start">
@@ -320,58 +335,63 @@ const Alcance = () => {
                   mode="range"
                   selected={{ from: dateRange.from, to: dateRange.to }}
                   onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
-                  numberOfMonths={2}
+                  numberOfMonths={typeof window !== 'undefined' && window.innerWidth < 768 ? 1 : 2}
                   locale={es}
                   fromYear={1960}
                   toYear={2030}
                 />
               </PopoverContent>
             </Popover>
-
           </div>
 
-          {/* Evolution Chart */}
+          {/* Evolution Chart - Responsive */}
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-transparent to-cyan-500/10 blur-3xl rounded-2xl"></div>
             
-            <div className="relative p-6 glass-effect rounded-2xl">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 glass-effect rounded-xl">
-                    <TrendingUp className="h-6 w-6 text-cyan-400" />
+            <div className="relative p-3 sm:p-4 lg:p-6 glass-effect rounded-xl sm:rounded-2xl">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-4">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="p-2 sm:p-3 glass-effect rounded-xl">
+                    <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-cyan-400" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-white">Evolución del Alcance</h2>
-                    <p className="text-white/70 text-sm">Análisis temporal de menciones</p>
+                    <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-white">
+                      Evolución del Alcance
+                    </h2>
+                    <p className="text-white/70 text-xs sm:text-sm">
+                      Análisis temporal de menciones
+                    </p>
                   </div>
                 </div>
 
-                {/* Interval Selector */}
-                <div className="flex gap-2">
+                {/* Interval Selector - Responsive */}
+                <div className="flex gap-1 sm:gap-2 w-full sm:w-auto">
                   {intervals.map((int) => (
                     <Button
                       key={int.value}
                       onClick={() => setInterval(int.value)}
-                      className={`transition-all duration-300 ${
+                      className={`transition-all duration-300 flex-1 sm:flex-initial text-xs sm:text-sm ${
                         interval === int.value
                           ? 'bg-primary/20 border border-cyan-300/60 shadow-xl shadow-cyan-400/30 scale-105 hover:bg-primary/20 text-white'
                           : 'glass-effect border-white/10 hover:bg-white/10 text-white'
                       }`}
                       variant={interval === int.value ? 'default' : 'outline'}
+                      size="sm"
                     >
-                      {int.label}
+                      <span className="sm:hidden">{int.shortLabel}</span>
+                      <span className="hidden sm:inline">{int.label}</span>
                     </Button>
                   ))}
                 </div>
               </div>
 
               {isLoading ? (
-                <div className="flex justify-center items-center h-[400px]">
-                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <div className="flex justify-center items-center h-[300px] sm:h-[350px] lg:h-[400px]">
+                  <Loader2 className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 animate-spin text-primary" />
                 </div>
               ) : reachData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={400}>
-                  <AreaChart data={reachData} margin={{ top: 20, right: 50, left: 80, bottom: 40 }}>
+                <ResponsiveContainer width="100%" height={typeof window !== 'undefined' && window.innerWidth < 640 ? 300 : window.innerWidth < 1024 ? 350 : 400}>
+                  <AreaChart data={reachData} margin={{ top: 20, right: 10, left: 0, bottom: 40 }}>
                     <defs>
                       <linearGradient id="colorReach" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.4}/>
@@ -390,64 +410,63 @@ const Alcance = () => {
                       dataKey="date" 
                       tickFormatter={formatXAxis}
                       stroke="rgba(255,255,255,0.9)"
-                      style={{ fontSize: '14px', fontWeight: 600, fill: '#ffffff' }}
+                      style={{ fontSize: typeof window !== 'undefined' && window.innerWidth < 640 ? '10px' : '12px', fontWeight: 600, fill: '#ffffff' }}
                       height={60}
                       angle={-45}
                       textAnchor="end"
                     />
                     <YAxis 
-                      tickFormatter={(value) => value.toLocaleString()}
+                      tickFormatter={(value) => formatNumber(value)}
                       stroke="rgba(255,255,255,0.9)"
-                      style={{ fontSize: '14px', fontWeight: 600, fill: '#ffffff' }}
-                      width={100}
+                      style={{ fontSize: typeof window !== 'undefined' && window.innerWidth < 640 ? '10px' : '12px', fontWeight: 600, fill: '#ffffff' }}
+                      width={typeof window !== 'undefined' && window.innerWidth < 640 ? 50 : 70}
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Area 
                       type="monotone" 
                       dataKey="reach" 
                       stroke="#22d3ee" 
-                      strokeWidth={3}
+                      strokeWidth={typeof window !== 'undefined' && window.innerWidth < 640 ? 2 : 3}
                       fill="url(#colorReach)"
                       filter="url(#glow)"
-                      dot={shouldShowDots ? { fill: '#22d3ee', strokeWidth: 2, r: 4 } : false}
-                      activeDot={{ r: 6, fill: '#22d3ee', stroke: '#fff', strokeWidth: 2 }}
+                      dot={shouldShowDots ? { fill: '#22d3ee', strokeWidth: 2, r: typeof window !== 'undefined' && window.innerWidth < 640 ? 3 : 4 } : false}
+                      activeDot={{ r: typeof window !== 'undefined' && window.innerWidth < 640 ? 5 : 6, fill: '#22d3ee', stroke: '#fff', strokeWidth: 2 }}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex justify-center items-center h-[400px] text-white/70">
+                <div className="flex justify-center items-center h-[300px] sm:h-[350px] lg:h-[400px] text-white/70 text-sm">
                   No hay datos disponibles para el rango seleccionado
                 </div>
               )}
             </div>
           </div>
 
-          {/* Drivers Grid */}
-          <div className="grid lg:grid-cols-2 gap-6">
+          {/* Drivers Grid - Responsive */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Top Authors */}
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-transparent to-purple-500/10 blur-3xl rounded-2xl"></div>
               
-              <div className="relative p-1 glass-effect rounded-2xl">
-                <div className="flex items-center justify-between mb-2 px-2">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 glass-effect rounded-xl">
-                      <Users className="h-6 w-6 text-blue-400" />
+              <div className="relative p-3 sm:p-4 lg:p-6 glass-effect rounded-xl sm:rounded-2xl">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-2 sm:p-3 glass-effect rounded-xl">
+                      <Users className="h-5 w-5 sm:h-6 sm:w-6 text-blue-400" />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold text-white">Top Autores</h2>
-                      <p className="text-white/70 text-sm">Por alcance total generado</p>
+                      <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-white">Top Autores</h2>
+                      <p className="text-white/70 text-xs sm:text-sm">Por alcance total generado</p>
                     </div>
                   </div>
 
-                  {/* Filters for Authors */}
-                  <div className="flex gap-2 items-center">
+                  <div className="flex gap-2 items-center w-full sm:w-auto">
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="glass-effect border-white/10 hover:bg-white/10 text-white"
+                          className="glass-effect border-white/10 hover:bg-white/10 text-white flex-1 sm:flex-initial text-xs sm:text-sm"
                         >
                           {weightOptions.find(w => w.value === driverWeight)?.label}
                         </Button>
@@ -459,7 +478,7 @@ const Alcance = () => {
                               key={option.value}
                               variant="ghost"
                               size="sm"
-                              className={`w-full justify-start text-white hover:bg-white/10 ${
+                              className={`w-full justify-start text-white hover:bg-white/10 text-sm ${
                                 driverWeight === option.value ? 'bg-white/10' : ''
                               }`}
                               onClick={() => setDriverWeight(option.value)}
@@ -476,7 +495,7 @@ const Alcance = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="glass-effect border-white/10 hover:bg-white/10 text-white"
+                          className="glass-effect border-white/10 hover:bg-white/10 text-white flex-1 sm:flex-initial text-xs sm:text-sm"
                         >
                           Top {driverLimit}
                         </Button>
@@ -488,7 +507,7 @@ const Alcance = () => {
                               key={limit}
                               variant="ghost"
                               size="sm"
-                              className={`w-full justify-start text-white hover:bg-white/10 ${
+                              className={`w-full justify-start text-white hover:bg-white/10 text-sm ${
                                 driverLimit === limit ? 'bg-white/10' : ''
                               }`}
                               onClick={() => setDriverLimit(limit)}
@@ -503,11 +522,11 @@ const Alcance = () => {
                 </div>
                 
                 {isLoadingDrivers ? (
-                  <div className="flex justify-center items-center h-[500px]">
-                    <Loader2 className="h-12 w-12 animate-spin text-blue-400" />
+                  <div className="flex justify-center items-center h-[350px] sm:h-[400px] lg:h-[500px]">
+                    <Loader2 className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 animate-spin text-blue-400" />
                   </div>
                 ) : authorsData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={500}>
+                  <ResponsiveContainer width="100%" height={typeof window !== 'undefined' && window.innerWidth < 640 ? 350 : window.innerWidth < 1024 ? 400 : 500}>
                     <BarChart 
                       data={authorsData} 
                       layout="vertical" 
@@ -518,14 +537,14 @@ const Alcance = () => {
                         type="number" 
                         tickFormatter={formatNumber}
                         stroke="rgba(255,255,255,0.9)"
-                        style={{ fontSize: '12px', fontWeight: 600 }}
+                        style={{ fontSize: typeof window !== 'undefined' && window.innerWidth < 640 ? '10px' : '11px', fontWeight: 600 }}
                       />
                       <YAxis 
                         type="category" 
                         dataKey="author" 
-                        width={110}
+                        width={typeof window !== 'undefined' && window.innerWidth < 640 ? 80 : 110}
                         stroke="rgba(255,255,255,0.9)"
-                        style={{ fontSize: '11px', fontWeight: 500 }}
+                        style={{ fontSize: typeof window !== 'undefined' && window.innerWidth < 640 ? '9px' : '10px', fontWeight: 500 }}
                       />
                       <Tooltip content={<BarTooltip />} />
                       <Bar 
@@ -539,10 +558,10 @@ const Alcance = () => {
                           />
                         ))}
                       </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
+                    </BarChart>
+                  </ResponsiveContainer>
                 ) : (
-                  <div className="flex justify-center items-center h-[500px] text-white/70">
+                  <div className="flex justify-center items-center h-[350px] sm:h-[400px] lg:h-[500px] text-white/70 text-sm">
                     No hay datos de autores disponibles
                   </div>
                 )}
@@ -553,26 +572,25 @@ const Alcance = () => {
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-transparent to-pink-500/10 blur-3xl rounded-2xl"></div>
               
-              <div className="relative p-1 glass-effect rounded-2xl">
-                <div className="flex items-center justify-between mb-2 px-2">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 glass-effect rounded-xl">
-                      <Hash className="h-6 w-6 text-purple-400" />
+              <div className="relative p-3 sm:p-4 lg:p-6 glass-effect rounded-xl sm:rounded-2xl">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-2 sm:p-3 glass-effect rounded-xl">
+                      <Hash className="h-5 w-5 sm:h-6 sm:w-6 text-purple-400" />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold text-white">Top Keywords</h2>
-                      <p className="text-white/70 text-sm">Palabras clave más relevantes</p>
+                      <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-white">Top Keywords</h2>
+                      <p className="text-white/70 text-xs sm:text-sm">Palabras clave más relevantes</p>
                     </div>
                   </div>
 
-                  {/* Filters for Keywords */}
-                  <div className="flex gap-2 items-center">
+                  <div className="flex gap-2 items-center w-full sm:w-auto">
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="glass-effect border-white/10 hover:bg-white/10 text-white"
+                          className="glass-effect border-white/10 hover:bg-white/10 text-white flex-1 sm:flex-initial text-xs sm:text-sm"
                         >
                           {weightOptions.find(w => w.value === driverWeight)?.label}
                         </Button>
@@ -584,7 +602,7 @@ const Alcance = () => {
                               key={option.value}
                               variant="ghost"
                               size="sm"
-                              className={`w-full justify-start text-white hover:bg-white/10 ${
+                              className={`w-full justify-start text-white hover:bg-white/10 text-sm ${
                                 driverWeight === option.value ? 'bg-white/10' : ''
                               }`}
                               onClick={() => setDriverWeight(option.value)}
@@ -601,7 +619,7 @@ const Alcance = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="glass-effect border-white/10 hover:bg-white/10 text-white"
+                          className="glass-effect border-white/10 hover:bg-white/10 text-white flex-1 sm:flex-initial text-xs sm:text-sm"
                         >
                           Top {driverLimit}
                         </Button>
@@ -613,7 +631,7 @@ const Alcance = () => {
                               key={limit}
                               variant="ghost"
                               size="sm"
-                              className={`w-full justify-start text-white hover:bg-white/10 ${
+                              className={`w-full justify-start text-white hover:bg-white/10 text-sm ${
                                 driverLimit === limit ? 'bg-white/10' : ''
                               }`}
                               onClick={() => setDriverLimit(limit)}
@@ -628,11 +646,11 @@ const Alcance = () => {
                 </div>
                 
                 {isLoadingDrivers ? (
-                  <div className="flex justify-center items-center h-[500px]">
-                    <Loader2 className="h-12 w-12 animate-spin text-purple-400" />
+                  <div className="flex justify-center items-center h-[350px] sm:h-[400px] lg:h-[500px]">
+                    <Loader2 className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 animate-spin text-purple-400" />
                   </div>
                 ) : keywordsData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={500}>
+                  <ResponsiveContainer width="100%" height={typeof window !== 'undefined' && window.innerWidth < 640 ? 350 : window.innerWidth < 1024 ? 400 : 500}>
                     <BarChart 
                       data={keywordsData} 
                       layout="vertical" 
@@ -643,14 +661,14 @@ const Alcance = () => {
                         type="number" 
                         tickFormatter={formatNumber}
                         stroke="rgba(255,255,255,0.9)"
-                        style={{ fontSize: '12px', fontWeight: 600 }}
+                        style={{ fontSize: typeof window !== 'undefined' && window.innerWidth < 640 ? '10px' : '11px', fontWeight: 600 }}
                       />
                       <YAxis 
                         type="category" 
                         dataKey="keyword" 
-                        width={110}
+                        width={typeof window !== 'undefined' && window.innerWidth < 640 ? 80 : 110}
                         stroke="rgba(255,255,255,0.9)"
-                        style={{ fontSize: '11px', fontWeight: 500 }}
+                        style={{ fontSize: typeof window !== 'undefined' && window.innerWidth < 640 ? '9px' : '10px', fontWeight: 500 }}
                       />
                       <Tooltip content={<BarTooltip />} />
                       <Bar 
@@ -664,10 +682,10 @@ const Alcance = () => {
                           />
                         ))}
                       </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
+                    </BarChart>
+                  </ResponsiveContainer>
                 ) : (
-                  <div className="flex justify-center items-center h-[500px] text-white/70">
+                  <div className="flex justify-center items-center h-[350px] sm:h-[400px] lg:h-[500px] text-white/70 text-sm">
                     No hay datos de keywords disponibles
                   </div>
                 )}

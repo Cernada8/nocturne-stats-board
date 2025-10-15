@@ -49,20 +49,20 @@ const Header = () => {
 
   return (
     <div className="flex justify-between items-center">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
         <img 
           src="/assets/logo_ADGCO.png" 
           alt="ADGCO Logo" 
-          className="h-12 w-auto object-contain drop-shadow-[0_0_10px_rgba(34,211,238,0.6)] cursor-pointer hover:drop-shadow-[0_0_15px_rgba(34,211,238,0.8)] transition-all duration-300"
+          className="h-8 sm:h-10 md:h-12 w-auto object-contain drop-shadow-[0_0_10px_rgba(34,211,238,0.6)] cursor-pointer hover:drop-shadow-[0_0_15px_rgba(34,211,238,0.8)] transition-all duration-300"
           onClick={() => navigate('/')}
         />
         {companyLogo && (
           <>
-            <div className="border-l border-white/20 h-12"></div>
+            <div className="border-l border-white/20 h-8 sm:h-10 md:h-12"></div>
             <img 
               src={companyLogo} 
               alt="Company Logo" 
-              className={`h-12 w-auto object-contain drop-shadow-[0_0_10px_rgba(34,211,238,0.6)] ${
+              className={`h-8 sm:h-10 md:h-12 w-auto object-contain drop-shadow-[0_0_10px_rgba(34,211,238,0.6)] ${
                 companyUrl ? 'cursor-pointer hover:drop-shadow-[0_0_15px_rgba(34,211,238,0.8)] transition-all duration-300' : ''
               }`}
               onClick={handleCompanyLogoClick}
@@ -73,10 +73,11 @@ const Header = () => {
       <Button
         onClick={logout}
         variant="outline"
-        className="glass-effect border-white/10 hover:bg-white/10 text-white"
+        size="sm"
+        className="glass-effect border-white/10 hover:bg-white/10 text-white px-2 sm:px-3 md:px-4"
       >
-        <LogOut className="mr-2 h-4 w-4" />
-        Cerrar sesión
+        <LogOut className="h-4 w-4 sm:mr-2" />
+        <span className="hidden sm:inline">Cerrar sesión</span>
       </Button>
     </div>
   );

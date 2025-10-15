@@ -93,18 +93,82 @@ const Estadisticas = () => {
       <SoftMathBackground />
       <Sidebar />
       
-      <div className="flex-1 p-6 overflow-y-auto relative z-10">
-        <div className="max-w-7xl mx-auto space-y-6">
-         <Header/>
+      <div className="flex-1 p-3 sm:p-4 md:p-6 lg:p-6 overflow-y-auto relative z-10">
+        <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+          <Header/>
 
           {/* Title */}
-          <div>
-            <h1 className="text-4xl font-bold text-white mb-2">Estadísticas</h1>
-            <p className="text-white/70">Selecciona un tipo de estadística para visualizar</p>
+          <div className="px-1">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-1 sm:mb-2">
+              Estadísticas
+            </h1>
+            <p className="text-sm sm:text-base text-white/70">
+              Selecciona un tipo de estadística para visualizar
+            </p>
           </div>
 
-          {/* Estadisticas Cards - Bento Grid */}
-          <div className="grid grid-cols-4 grid-rows-2 gap-4 h-[calc(100vh-280px)]">
+          {/* Mobile: Stack vertical */}
+          <div className="grid grid-cols-1 gap-3 sm:hidden">
+            {estadisticasCards.map((card) => (
+              <Card
+                key={card.id}
+                onClick={() => handleCardClick(card.id)}
+                className="min-h-[160px] glass-card cursor-pointer transition-all duration-500 hover:bg-white/5 border border-white/10 group relative overflow-hidden"
+              >
+                <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+                <div className={`absolute inset-0 blur-3xl opacity-0 group-hover:opacity-50 transition-opacity duration-500 ${card.glow}`}></div>
+                
+                <div className="relative flex flex-col items-center justify-center text-center h-full space-y-3 p-4">
+                  <div className="relative">
+                    <div className="p-3 bg-gradient-to-br from-white/10 to-white/5 border border-white/20 rounded-2xl group-hover:scale-110 transition-all duration-500">
+                      <card.icon className="w-8 h-8 text-white" />
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white mb-1">
+                      {card.title}
+                    </h3>
+                    <p className="text-xs text-white/70">
+                      {card.description}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Tablet: 2 columns */}
+          <div className="hidden sm:grid lg:hidden grid-cols-2 gap-4 auto-rows-fr">
+            {estadisticasCards.map((card) => (
+              <Card
+                key={card.id}
+                onClick={() => handleCardClick(card.id)}
+                className="min-h-[200px] glass-card cursor-pointer transition-all duration-500 hover:bg-white/5 border border-white/10 group relative overflow-hidden"
+              >
+                <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+                <div className={`absolute inset-0 blur-3xl opacity-0 group-hover:opacity-50 transition-opacity duration-500 ${card.glow}`}></div>
+                
+                <div className="relative flex flex-col items-center justify-center text-center h-full space-y-4 p-6">
+                  <div className="relative">
+                    <div className="p-4 bg-gradient-to-br from-white/10 to-white/5 border border-white/20 rounded-2xl group-hover:scale-110 transition-all duration-500">
+                      <card.icon className="w-10 h-10 text-white" />
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white mb-1">
+                      {card.title}
+                    </h3>
+                    <p className="text-sm text-white/70">
+                      {card.description}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop: Bento Grid original - EXACTO como antes */}
+          <div className="hidden lg:grid grid-cols-4 grid-rows-2 gap-4 h-[calc(100vh-280px)]">
             {/* Alcance - Grande */}
             <Card
               onClick={() => handleCardClick('alcance')}
