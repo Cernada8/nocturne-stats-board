@@ -175,7 +175,7 @@ const Comparador = () => {
                 >
                   {blueTeam ? (
                     <div className="text-center space-y-4 p-6">
-                      <div className="text-6xl sm:text-7xl md:text-8xl">🥊</div>
+                      <div className="text-6xl sm:text-7xl md:text-8xl"></div>
                       <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-100 break-words px-2">
                         {blueTeam.name}
                       </div>
@@ -230,7 +230,7 @@ const Comparador = () => {
                 >
                   {redTeam ? (
                     <div className="text-center space-y-4 p-6">
-                      <div className="text-6xl sm:text-7xl md:text-8xl">🥊</div>
+                      <div className="text-6xl sm:text-7xl md:text-8xl"></div>
                       <div className="text-lg sm:text-xl md:text-2xl font-bold text-red-100 break-words px-2">
                         {redTeam.name}
                       </div>
@@ -313,7 +313,7 @@ const Comparador = () => {
                   onClick={handleCompare}
                   className="px-8 py-4 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-red-500 text-white font-bold text-lg sm:text-xl shadow-2xl hover:shadow-[0_0_40px_rgba(168,85,247,0.6)] transition-all duration-300 hover:scale-105 active:scale-95"
                 >
-                  ¡COMPARAR! 🎮
+                  ¡COMPARAR!
                 </button>
               </div>
             )}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, TrendingUp, Trophy, Menu, X, MapIcon, Swords, CloudIcon } from 'lucide-react';
+import { Home, TrendingUp, Trophy, Menu, X, MapIcon, Swords, CloudIcon, AlertCircle } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const Sidebar = () => {
@@ -42,6 +42,11 @@ const Sidebar = () => {
       name: 'Nube de palabras',
       icon: CloudIcon,
       path: '/topicCloud'
+    },{
+      id: 'lista-menciones',
+      name: 'Lista de menciones',
+      icon: AlertCircle,
+      path: '/lista-menciones'
     },
   ];
 

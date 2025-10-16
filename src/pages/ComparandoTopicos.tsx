@@ -259,7 +259,7 @@ const ComparandoTopicos = () => {
           <div className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6 items-center mb-6 sm:mb-8">
             {/* Blue Fighter */}
             <div className="text-center space-y-1 sm:space-y-2">
-              <div className="text-2xl sm:text-3xl md:text-4xl">🥊</div>
+              <div className="text-2xl sm:text-3xl md:text-4xl"></div>
               <div className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-blue-400 break-words px-1 sm:px-2">
                 {blueAlert?.name || 'Cargando...'}
               </div>
@@ -274,7 +274,7 @@ const ComparandoTopicos = () => {
 
             {/* Red Fighter */}
             <div className="text-center space-y-1 sm:space-y-2">
-              <div className="text-2xl sm:text-3xl md:text-4xl">🥊</div>
+              <div className="text-2xl sm:text-3xl md:text-4xl"></div>
               <div className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-red-400 break-words px-1 sm:px-2">
                 {redAlert?.name || 'Cargando...'}
               </div>
@@ -376,7 +376,7 @@ const ComparandoTopicos = () => {
                   <div className="w-full border-t-2 border-gradient-to-r from-transparent via-foreground/20 to-transparent"></div>
                 </div>
                 <div className="relative flex justify-center">
-                  <span className="bg-background px-4 text-2xl">⚔️</span>
+                  <span className="bg-background px-4 text-2xl"></span>
                 </div>
               </div>
 

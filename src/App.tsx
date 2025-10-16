@@ -25,6 +25,7 @@ import MapaCalor from "./pages/MapaCalor";
 import Comparador from "./pages/Comparador";
 import ComparandoTopicos from "./pages/ComparandoTopicos";
 import TopicCloud from "./pages/TopicCloud";
+import ListaMenciones from "./pages/ListaMenciones";
 
 const queryClient = new QueryClient();
 
@@ -147,6 +148,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <TopicCloud />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/lista-menciones" 
+              element={
+                <ProtectedRoute>
+                  <ListaMenciones />
                 </ProtectedRoute>
               } 
             />
