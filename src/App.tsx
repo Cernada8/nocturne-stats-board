@@ -26,6 +26,7 @@ import Comparador from "./pages/Comparador";
 import ComparandoTopicos from "./pages/ComparandoTopicos";
 import TopicCloud from "./pages/TopicCloud";
 import ListaMenciones from "./pages/ListaMenciones";
+import Alertas from "./pages/Alertas";
 
 const queryClient = new QueryClient();
 
@@ -156,6 +157,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ListaMenciones />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/alertas" 
+              element={
+                <ProtectedRoute>
+                  <Alertas />
                 </ProtectedRoute>
               } 
             />

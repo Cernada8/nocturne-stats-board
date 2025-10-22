@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
 import AlertCard from '@/components/AlertCard';
+import ArgosAI from './ArgosAI';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiFetch } from '@/lib/api';
@@ -262,6 +263,9 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* ArgosAI Widget Flotante */}
+      <ArgosAI />
     </div>
   );
 };
