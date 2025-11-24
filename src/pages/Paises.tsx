@@ -46,7 +46,7 @@ const Paises = () => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
-    from: new Date(2020, 0, 1),
+    from: new Date(2025, 0, 1),
     to: new Date()
   });
 
@@ -58,6 +58,26 @@ const Paises = () => {
   const [limit, setLimit] = useState(50);
 
   const limitOptions = [10, 20, 50, 100, 200];
+
+  // Función para navegar a lista de menciones con filtro de país
+  const handleCountryClick = (countryCode: string) => {
+    const params = new URLSearchParams();
+    params.set('country', countryCode);
+    
+    if (selectedAlertId) {
+      params.set('alert_id', selectedAlertId);
+    }
+    
+    if (dateRange.from) {
+      params.set('date_from', format(dateRange.from, 'yyyy-MM-dd'));
+    }
+    
+    if (dateRange.to) {
+      params.set('date_to', format(dateRange.to, 'yyyy-MM-dd'));
+    }
+    
+    navigate(`/lista-menciones?${params.toString()}`);
+  };
 
   useEffect(() => {
     if (userEmail && !companyId) {
@@ -203,6 +223,21 @@ const Paises = () => {
     }
   };
 
+  const handleMapCountryClick = (geo: any) => {
+    const geoId = geo.id;
+    const isoA2 = iso3ToIso2[geoId];
+    
+    if (!isoA2) return;
+    
+    const country = countriesData.find(c => 
+      c.country_code?.toUpperCase() === isoA2.toUpperCase()
+    );
+    
+    if (country && country.total_mentions > 0) {
+      handleCountryClick(country.country_code);
+    }
+  };
+
   const topCountries = countriesData.slice(0, 10);
 
   return (
@@ -245,7 +280,7 @@ const Paises = () => {
                   <span className="truncate">
                     {selectedAlertId 
                       ? alerts.find(a => a.id === selectedAlertId)?.name 
-                      : "Todos los tópicos"}
+                      : "Todos los temas"}
                   </span>
                   <BookOpen className="ml-2 h-4 w-4 shrink-0" />
                 </Button>
@@ -259,7 +294,8 @@ const Paises = () => {
                     }`}
                     onClick={() => setSelectedAlertId(null)}
                   >
-Todos los tópicos                  </Button>
+                    Todos los temas
+                  </Button>
                   {alerts.map((alert) => (
                     <Button
                       key={alert.id}
@@ -447,6 +483,7 @@ Todos los tópicos                  </Button>
                                 }}
                                 onMouseEnter={(e) => handleMouseEnter(geo, e)}
                                 onMouseLeave={handleMouseLeave}
+                                onClick={() => handleMapCountryClick(geo)}
                               />
                             );
                           })
@@ -472,6 +509,9 @@ Todos los tópicos                  </Button>
                       Menciones: <span className="font-bold text-cyan-400">
                         {hoveredCountry.total_mentions?.toLocaleString() ?? '0'}
                       </span>
+                    </p>
+                    <p className="text-cyan-400/70 text-xs mt-2 italic">
+                      Click para ver menciones
                     </p>
                   </div>
                 )}
@@ -514,7 +554,11 @@ Todos los tópicos                  </Button>
                     </thead>
                     <tbody className="divide-y divide-white/5">
                       {topCountries.map((country, index) => (
-                        <tr key={country.country_code} className="hover:bg-white/5 transition-colors">
+                        <tr 
+                          key={country.country_code} 
+                          className="hover:bg-white/5 transition-colors cursor-pointer"
+                          onClick={() => handleCountryClick(country.country_code)}
+                        >
                           <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
                             <div 
                               className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm sm:text-lg"

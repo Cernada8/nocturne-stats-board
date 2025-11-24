@@ -206,7 +206,7 @@ const GeneroEdad = () => {
                   <span className="truncate">
                     {selectedAlertId 
                       ? alerts.find(a => a.id === selectedAlertId)?.name 
-                      : "Todos los tópicos"}
+                      : "Todos los temas"}
                   </span>
                   <BookOpen className="ml-2 h-4 w-4 shrink-0" />
                 </Button>
@@ -220,7 +220,7 @@ const GeneroEdad = () => {
                     }`}
                     onClick={() => setSelectedAlertId(null)}
                   >
-                    Todos los tópicos
+                    Todos los temas
                   </Button>
                   {alerts.map((alert) => (
                     <Button

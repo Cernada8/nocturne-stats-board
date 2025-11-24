@@ -197,6 +197,10 @@ const TopicCloud = () => {
         });
     };
 
+    const handleTopicClick = (topicText: string) => {
+        navigate(`/lista-menciones?text=${encodeURIComponent(topicText)}`);
+    };
+
     return (
         <div className="min-h-screen max-h-screen overflow-hidden flex flex-col lg:flex-row">
             <style>{`
@@ -245,7 +249,7 @@ const TopicCloud = () => {
                                     <span className="truncate">
                                         {selectedAlertId
                                             ? alerts.find(a => a.id === selectedAlertId)?.name
-                                            : "Todos los tópicos"}
+                                            : "Todos los temas"}
                                     </span>
                                     <BookOpen className="ml-2 h-4 w-4 shrink-0" />
                                 </Button>
@@ -257,7 +261,7 @@ const TopicCloud = () => {
                                         className={`w-full justify-start text-white hover:bg-white/10 text-sm ${!selectedAlertId ? 'bg-white/10' : ''}`}
                                         onClick={() => setSelectedAlertId(null)}
                                     >
-                                        Todos los tópicos
+                                        Todos los temas
                                     </Button>
                                     {alerts.map((alert) => (
                                         <Button
@@ -303,7 +307,14 @@ const TopicCloud = () => {
 
                         <Popover>
                             <PopoverTrigger asChild>
-
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="glass-effect border-white/10 hover:bg-white/10 text-white flex-1 sm:flex-none text-xs sm:text-sm"
+                                >
+                                    <Filter className="mr-2 h-4 w-4" />
+                                    Mínimo: {minCount}
+                                </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-[160px] p-2 glass-card border-white/10">
                                 <div className="space-y-1">
@@ -397,6 +408,7 @@ const TopicCloud = () => {
                                                         animationDelay: `${index * 50}ms`,
                                                         animationFillMode: 'backwards'
                                                     }}
+                                                    onClick={() => handleTopicClick(topic.text)}
                                                 >
                                                     <div className="relative">
                                                         {/* Glow effect on hover */}
@@ -521,7 +533,11 @@ const TopicCloud = () => {
                                             </thead>
                                             <tbody className="divide-y divide-white/5">
                                                 {topics.slice(0, 10).map((topic, index) => (
-                                                    <tr key={index} className="hover:bg-white/5 transition-all duration-300 group">
+                                                    <tr 
+                                                        key={index} 
+                                                        className="hover:bg-white/5 transition-all duration-300 group cursor-pointer"
+                                                        onClick={() => handleTopicClick(topic.text)}
+                                                    >
                                                         <td className="px-4 sm:px-6 py-3 sm:py-4">
                                                             <div
                                                                 className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm sm:text-lg relative overflow-hidden group-hover:scale-110 transition-transform duration-300"

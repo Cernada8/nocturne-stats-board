@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import Sidebar from '@/components/Sidebar';
-import { 
-  Loader2, 
-  Calendar as CalendarIcon, 
-  BookOpen, 
+import {
+  Loader2,
+  Calendar as CalendarIcon,
+  BookOpen,
   MapPin,
   ArrowLeft,
   Flame,
@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 import { apiFetch } from '@/lib/api';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { 
+import {
   ComposableMap,
   Geographies,
   Geography,
@@ -38,6 +38,7 @@ interface Alert {
 interface GeoPoint {
   lat: number;
   lng: number;
+  country: string;
   mentions: number;
 }
 
@@ -54,7 +55,7 @@ const MapaCalor = () => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
-    from: new Date(2020, 0, 1),
+    from: new Date(2025, 0, 1),
     to: new Date()
   });
 
@@ -89,7 +90,7 @@ const MapaCalor = () => {
     try {
       const response = await apiFetch(`/api/info/getIdEmpresa?email=${userEmail}`);
       if (!response.ok) throw new Error('Error al obtener ID de empresa');
-      
+
       const result = await response.json();
       setCompanyId(result.data.company_id.toString());
     } catch (error) {
@@ -100,13 +101,14 @@ const MapaCalor = () => {
 
   const fetchAlerts = async () => {
     if (!companyId) return;
-    
+
     try {
       const response = await apiFetch(`/api/info/getAlerts?company_id=${companyId}`);
       if (!response.ok) throw new Error('Error al obtener alertas');
-      
+
       const result = await response.json();
-      setAlerts(result.data.alerts || []);
+      const alertsList = (result.data.alerts || []).filter((alert: Alert) => alert.name !== 'Leads');
+      setAlerts(alertsList);
     } catch (error) {
       toast.error('Error al cargar alertas');
       console.error(error);
@@ -115,21 +117,21 @@ const MapaCalor = () => {
 
   const fetchMapData = async () => {
     if (!companyId || !dateRange.from || !dateRange.to) return;
-    
+
     setIsLoading(true);
     try {
       const fromStr = format(dateRange.from, 'yyyy-MM-dd');
       const toStr = format(dateRange.to, 'yyyy-MM-dd');
-      
+
       let endpoint = `/api/stats/geo/map?company_id=${companyId}&from=${fromStr}&to=${toStr}`;
       if (selectedAlertId) endpoint += `&alert_id=${selectedAlertId}`;
-      
+
       const response = await apiFetch(endpoint);
       if (!response.ok) throw new Error('Error al obtener datos del mapa');
-      
+
       const result = await response.json();
       setMapData(result.data);
-      
+
       console.log('Datos del mapa recibidos:', result.data);
     } catch (error) {
       toast.error('Error al cargar datos del mapa');
@@ -152,7 +154,7 @@ const MapaCalor = () => {
     if (!mapData) return '#06b6d4';
     const maxMentions = Math.max(...mapData.points.map(p => p.mentions));
     const intensity = mentions / maxMentions;
-    
+
     if (intensity > 0.8) return '#22d3ee';
     if (intensity > 0.6) return '#06b6d4';
     if (intensity > 0.4) return '#0891b2';
@@ -214,11 +216,56 @@ const MapaCalor = () => {
     }
   };
 
+  // Calcular posición inteligente del tooltip
+  // Calcular posición inteligente del tooltip
+  // Calcular posición del tooltip anclado al punto
+  // Calcular posición del tooltip anclado al punto
+  // Calcular posición del tooltip anclado al punto
+  const getTooltipPosition = () => {
+    if (typeof window === 'undefined') return { left: 0, top: 0, isBelow: false };
+
+    const isMobile = window.innerWidth < 640;
+    const tooltipWidth = isMobile ? 180 : 220;
+    const tooltipHeight = 160;
+    const verticalOffset = 200; // Desplazamiento hacia arriba (más grande = más arriba)
+    const horizontalOffset = 300; // Desplazamiento hacia la izquierda
+    const edgeMargin = 10;
+
+    // Desplazar hacia la izquierda del punto
+    let left = tooltipPosition.x - horizontalOffset;
+    // Colocar arriba del punto con más separación
+    let top = tooltipPosition.y - tooltipHeight - verticalOffset;
+    let isBelow = false;
+
+    // Ajustar si se sale por la izquierda
+    if (left < edgeMargin) {
+      left = edgeMargin;
+    }
+
+    // Ajustar si se sale por la derecha
+    if (left + tooltipWidth > window.innerWidth - edgeMargin) {
+      left = window.innerWidth - tooltipWidth - edgeMargin;
+    }
+
+    // Si se sale por arriba, colocarlo abajo del punto
+    if (top < edgeMargin) {
+      top = tooltipPosition.y + verticalOffset;
+      isBelow = true;
+    }
+
+    // Si aún se sale por abajo después de moverlo, ajustar
+    if (top + tooltipHeight > window.innerHeight - edgeMargin) {
+      top = window.innerHeight - tooltipHeight - edgeMargin;
+    }
+
+    return { left, top, isBelow };
+  };
+
   return (
     <div className="min-h-screen max-h-screen overflow-hidden flex">
       <SoftMathBackground />
       <Sidebar />
-      
+
       <div className="flex-1 overflow-y-auto relative z-10 scrollbar-thin scrollbar-thumb-slate-700/50 scrollbar-track-slate-900/50 hover:scrollbar-thumb-slate-600/70">
         <div className="p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl mx-auto space-y-4 sm:space-y-6 lg:space-y-8">
           <Header />
@@ -250,9 +297,9 @@ const MapaCalor = () => {
                   className="glass-effect border-white/10 hover:bg-white/10 text-white w-full sm:w-[240px] justify-between text-sm"
                 >
                   <span className="truncate">
-                    {selectedAlertId 
-                      ? alerts.find(a => a.id === selectedAlertId)?.name 
-                      : "Todos los tópicos"}
+                    {selectedAlertId
+                      ? alerts.find(a => a.id === selectedAlertId)?.name
+                      : "Todos los temas"}
                   </span>
                   <BookOpen className="ml-2 h-4 w-4 flex-shrink-0" />
                 </Button>
@@ -261,20 +308,18 @@ const MapaCalor = () => {
                 <div className="space-y-1">
                   <Button
                     variant="ghost"
-                    className={`w-full justify-start text-white hover:bg-white/10 text-sm ${
-                      !selectedAlertId ? 'bg-white/10' : ''
-                    }`}
+                    className={`w-full justify-start text-white hover:bg-white/10 text-sm ${!selectedAlertId ? 'bg-white/10' : ''
+                      }`}
                     onClick={() => setSelectedAlertId(null)}
                   >
-                  Todos los tópicos
+                    Todos los temas
                   </Button>
                   {alerts.map((alert) => (
                     <Button
                       key={alert.id}
                       variant="ghost"
-                      className={`w-full justify-start text-white hover:bg-white/10 text-sm ${
-                        selectedAlertId === alert.id ? 'bg-white/10' : ''
-                      }`}
+                      className={`w-full justify-start text-white hover:bg-white/10 text-sm ${selectedAlertId === alert.id ? 'bg-white/10' : ''
+                        }`}
                       onClick={() => setSelectedAlertId(alert.id)}
                     >
                       <span className="truncate">{alert.name}</span>
@@ -308,15 +353,17 @@ const MapaCalor = () => {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 glass-card border-white/10" align="start">
-                <Calendar
-                  mode="range"
-                  selected={{ from: dateRange.from, to: dateRange.to }}
-                  onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
-                  numberOfMonths={typeof window !== 'undefined' && window.innerWidth < 640 ? 1 : 2}
-                  locale={es}
-                  fromYear={1960}
-                  toYear={2030}
-                />
+               <Calendar
+  mode="range"
+  selected={{ from: dateRange.from, to: dateRange.to }}
+  onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
+  numberOfMonths={typeof window !== 'undefined' && window.innerWidth < 768 ? 1 : 2}
+  locale={es}
+  fromYear={1960}
+  toYear={2030}
+  showPredefinedPeriods={true}
+  onPredefinedPeriodSelect={(range) => setDateRange(range)}
+/>
               </PopoverContent>
             </Popover>
 
@@ -398,9 +445,9 @@ const MapaCalor = () => {
                 <Loader2 className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 animate-spin text-cyan-400" />
               </div>
             ) : (
-              <div 
+              <div
                 className="relative rounded-xl sm:rounded-2xl overflow-hidden"
-                style={{ 
+                style={{
                   filter: 'drop-shadow(0 0 20px rgba(6, 182, 212, 0.15))',
                   height: 'clamp(400px, 60vh, 700px)'
                 }}
@@ -424,8 +471,8 @@ const MapaCalor = () => {
                     height: '100%'
                   }}
                 >
-                  <ZoomableGroup 
-                    zoom={position.zoom} 
+                  <ZoomableGroup
+                    zoom={position.zoom}
                     center={position.coordinates}
                   >
                     <Geographies geography={geoUrl}>
@@ -451,7 +498,7 @@ const MapaCalor = () => {
                       const size = getPointSize(point.mentions);
                       const color = getPointColor(point.mentions);
                       const opacity = getPointOpacity(point.mentions);
-                      
+
                       return (
                         <Marker
                           key={`${point.lat}-${point.lng}-${index}`}
@@ -514,28 +561,40 @@ const MapaCalor = () => {
 
                 {hoveredPoint && (
                   <div
-                    className="fixed glass-card p-3 sm:p-4 border border-cyan-300/30 shadow-xl shadow-cyan-400/20 pointer-events-none z-50 max-w-[200px] sm:max-w-none"
+                    className="fixed glass-card p-3 sm:p-4 border border-cyan-300/30 shadow-xl shadow-cyan-400/20 pointer-events-none z-50 max-w-[200px] sm:max-w-[220px]"
                     style={{
-                      left: typeof window !== 'undefined' ? Math.min(tooltipPosition.x + 10, window.innerWidth - 220) : tooltipPosition.x + 10,
-                      top: tooltipPosition.y + 10
+                      left: `${getTooltipPosition().left}px`,
+                      top: `${getTooltipPosition().top}px`
                     }}
                   >
-                    <p className="text-cyan-300 font-bold mb-1 sm:mb-2 flex items-center gap-2 text-xs sm:text-sm">
-                      <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
-                      Ubicación
-                    </p>
-                    <p className="text-white text-xs sm:text-sm mb-1">
-                      Lat: <span className="font-bold text-cyan-400">{hoveredPoint.lat.toFixed(3)}</span>
-                    </p>
-                    <p className="text-white text-xs sm:text-sm mb-1">
-                      Lng: <span className="font-bold text-cyan-400">{hoveredPoint.lng.toFixed(3)}</span>
-                    </p>
-                    <p className="text-white text-xs sm:text-sm">
-                      Menciones: <span className="font-bold text-cyan-400">
+                    {/* País destacado */}
+                    <div className="mb-3 pb-2 border-b border-cyan-400/30">
+                      <p className="text-cyan-300 text-[10px] sm:text-xs font-medium mb-1">PAÍS</p>
+                      <p className="text-white text-lg sm:text-xl font-bold tracking-wider">
+                        {hoveredPoint.country}
+                      </p>
+                    </div>
+
+                    {/* Menciones destacadas */}
+                    <div className="mb-3">
+                      <p className="text-cyan-300 text-[10px] sm:text-xs font-medium mb-1">MENCIONES</p>
+                      <p className="text-white text-base sm:text-lg font-bold text-cyan-400">
                         {hoveredPoint.mentions.toLocaleString()}
-                      </span>
-                    </p>
-                    <p className="text-white/50 text-[10px] sm:text-xs mt-1 sm:mt-2 italic hidden sm:block">
+                      </p>
+                    </div>
+
+                    {/* Coordenadas en letra pequeña */}
+                    <div className="pt-2 border-t border-white/10">
+                      <p className="text-white/50 text-[10px] mb-0.5 flex items-center gap-1">
+                        <MapPin className="h-2.5 w-2.5" />
+                        <span>Lat: {hoveredPoint.lat.toFixed(3)}</span>
+                      </p>
+                      <p className="text-white/50 text-[10px] mb-1">
+                        <span className="ml-4">Lng: {hoveredPoint.lng.toFixed(3)}</span>
+                      </p>
+                    </div>
+
+                    <p className="text-white/50 text-[10px] mt-2 italic hidden sm:block">
                       Click para hacer zoom
                     </p>
                   </div>

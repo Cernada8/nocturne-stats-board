@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import Sidebar from '@/components/Sidebar';
-import { Loader2, Calendar as CalendarIcon, ArrowLeft } from 'lucide-react';
+import { Loader2, CalendarDays, ArrowLeft, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiFetch } from '@/lib/api';
 import { format } from 'date-fns';
@@ -30,7 +30,7 @@ const RankingLenguajes = () => {
   const [rankingData, setRankingData] = useState<RankingData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
-    from: new Date(2020, 0, 1),
+    from: new Date(2025, 0, 1),
     to: new Date()
   });
   const [limit, setLimit] = useState<number>(5);
@@ -85,6 +85,18 @@ const RankingLenguajes = () => {
       name: code.toUpperCase(),
       flag: '🌐'
     };
+  };
+
+  const handleLanguageClick = (languageCode: string) => {
+    if (!dateRange.from || !dateRange.to) return;
+    
+    const params = new URLSearchParams({
+      language: languageCode,
+      date_from: format(dateRange.from, 'yyyy-MM-dd'),
+      date_to: format(dateRange.to, 'yyyy-MM-dd')
+    });
+    
+    navigate(`/lista-menciones?${params.toString()}`);
   };
 
   useEffect(() => {
@@ -173,7 +185,7 @@ const RankingLenguajes = () => {
                 Ranking de Idiomas
               </h1>
               <p className="text-sm sm:text-base text-white/70">
-                Distribución de menciones por idioma
+                Distribución de menciones por idioma - Haz clic para ver detalles
               </p>
             </div>
           </div>
@@ -187,7 +199,7 @@ const RankingLenguajes = () => {
                   variant="outline"
                   className="glass-effect border-white/10 hover:bg-white/10 text-white w-full sm:w-auto text-sm"
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                  <CalendarDays className="mr-2 h-4 w-4 shrink-0" />
                   <span className="truncate">
                     {dateRange.from && dateRange.to ? (
                       <>
@@ -285,7 +297,8 @@ const RankingLenguajes = () => {
                     return (
                       <div
                         key={index}
-                        className="glass-card p-4 sm:p-5 lg:p-6 border border-white/10 hover:bg-white/10 transition-all duration-300 rounded-xl"
+                        onClick={() => handleLanguageClick(lang.language)}
+                        className="glass-card p-4 sm:p-5 lg:p-6 border border-white/10 hover:bg-white/10 hover:border-cyan-400/30 transition-all duration-300 rounded-xl cursor-pointer group"
                       >
                         <div className="flex flex-col gap-4">
                           {/* Top section: Position + Flag + Language name */}
@@ -299,13 +312,15 @@ const RankingLenguajes = () => {
                             </div>
 
                             <div className="flex-1 min-w-0">
-                              <h3 className="text-base sm:text-lg lg:text-xl font-bold text-white truncate">
+                              <h3 className="text-base sm:text-lg lg:text-xl font-bold text-white truncate group-hover:text-cyan-400 transition-colors">
                                 {langInfo.name}
                               </h3>
                               <p className="text-xs sm:text-sm text-white/70">
                                 {lang.language.toUpperCase()}
                               </p>
                             </div>
+
+                            <ExternalLink className="h-4 w-4 sm:h-5 sm:w-5 text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                           </div>
 
                           {/* Stats section */}

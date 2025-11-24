@@ -45,7 +45,7 @@ interface Alert {
   created_at?: string;
 }
 
-const ComparandoTopicos = () => {
+const ComparandoTemas = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { companyId } = useAuth();
@@ -62,7 +62,7 @@ const ComparandoTopicos = () => {
   const [isLoading, setIsLoading] = useState(false);
   
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
-    from: new Date(2020, 0, 1),
+    from: new Date(2025, 0, 1),
     to: new Date()
   });
 
@@ -307,26 +307,30 @@ const ComparandoTopicos = () => {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 glass-card border-white/10" align="center">
-                <Calendar
-                  mode="range"
-                  selected={{ from: dateRange.from, to: dateRange.to }}
-                  onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
-                  numberOfMonths={1}
-                  locale={es}
-                  fromYear={1960}
-                  toYear={2030}
-                  className="sm:hidden"
-                />
-                <Calendar
-                  mode="range"
-                  selected={{ from: dateRange.from, to: dateRange.to }}
-                  onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
-                  numberOfMonths={2}
-                  locale={es}
-                  fromYear={1960}
-                  toYear={2030}
-                  className="hidden sm:block"
-                />
+<Calendar
+  mode="range"
+  selected={{ from: dateRange.from, to: dateRange.to }}
+  onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
+  numberOfMonths={1}
+  locale={es}
+  fromYear={1960}
+  toYear={2030}
+  className="sm:hidden"
+  showPredefinedPeriods={true}
+  onPredefinedPeriodSelect={(range) => setDateRange(range)}
+/>
+<Calendar
+  mode="range"
+  selected={{ from: dateRange.from, to: dateRange.to }}
+  onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
+  numberOfMonths={2}
+  locale={es}
+  fromYear={1960}
+  toYear={2030}
+  className="hidden sm:block"
+  showPredefinedPeriods={true}
+  onPredefinedPeriodSelect={(range) => setDateRange(range)}
+/>
               </PopoverContent>
             </Popover>
           </div>
@@ -444,4 +448,4 @@ const ComparandoTopicos = () => {
   );
 };
 
-export default ComparandoTopicos;
+export default ComparandoTemas;

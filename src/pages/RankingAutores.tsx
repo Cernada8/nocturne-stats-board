@@ -28,7 +28,7 @@ const RankingAutores = () => {
   const [rankings, setRankings] = useState<AuthorRanking[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
-    from: new Date(2020, 0, 1),
+    from: new Date(2025, 0, 1),
     to: new Date()
   });
   const [limit, setLimit] = useState<number>(5);
@@ -36,7 +36,7 @@ const RankingAutores = () => {
   const navigate = useNavigate();
 
   const orderOptions = [
-    { value: 'audience' as const, label: 'Audiencia', shortLabel: 'Aud.' },
+    { value: 'audience' as const, label: 'Alcance', shortLabel: 'Aud.' },
     { value: 'mentions' as const, label: 'Menciones', shortLabel: 'Menc.' }
   ];
 
@@ -121,7 +121,7 @@ const RankingAutores = () => {
                 Ranking de Autores
               </h1>
               <p className="text-sm sm:text-base text-white/70">
-                Top de autores ordenados por audiencia o menciones
+                Top de autores ordenados por alcance o menciones
               </p>
             </div>
           </div>
@@ -303,7 +303,7 @@ const RankingAutores = () => {
                             <p className="text-lg sm:text-xl lg:text-2xl font-bold text-white">
                               {author.total_audience.toLocaleString()}
                             </p>
-                            <p className="text-xs sm:text-sm text-white/70">Audiencia</p>
+                            <p className="text-xs sm:text-sm text-white/70">Alcance</p>
                           </div>
                         </div>
                       </div>

@@ -95,7 +95,7 @@ const Comparador = () => {
 
   const handleCompare = () => {
     if (blueTeam && redTeam) {
-      navigate(`/comparandoTopicos?blue=${blueTeam.id}&red=${redTeam.id}`);
+      navigate(`/comparandoTemas?blue=${blueTeam.id}&red=${redTeam.id}`);
     }
   };
 
@@ -156,7 +156,7 @@ const Comparador = () => {
               {/* Blue Team */}
               <div className="space-y-4">
                 <h2 className="text-xl sm:text-2xl font-bold text-center text-blue-400">
-                  TÓPICO AZUL
+                  TEMA AZUL
                 </h2>
                 <div 
                   className={`relative aspect-square rounded-2xl border-4 ${
@@ -189,7 +189,7 @@ const Comparador = () => {
                         {dragOverZone === 'blue' ? '⬇️' : '❓'}
                       </div>
                       <div className="text-sm sm:text-base text-blue-300">
-                        {dragOverZone === 'blue' ? 'Suelta aquí' : 'Selecciona o arrastra un tópico'}
+                        {dragOverZone === 'blue' ? 'Suelta aquí' : 'Selecciona o arrastra un tema'}
                       </div>
                     </div>
                   )}
@@ -211,7 +211,7 @@ const Comparador = () => {
               {/* Red Team */}
               <div className="space-y-4">
                 <h2 className="text-xl sm:text-2xl font-bold text-center text-red-400">
-                  TÓPICO ROJO
+                  TEMA ROJO
                 </h2>
                 <div 
                   className={`relative aspect-square rounded-2xl border-4 ${
@@ -244,7 +244,7 @@ const Comparador = () => {
                         {dragOverZone === 'red' ? '⬇️' : '❓'}
                       </div>
                       <div className="text-sm sm:text-base text-red-300">
-                        {dragOverZone === 'red' ? 'Suelta aquí' : 'Selecciona o arrastra un tópico'}
+                        {dragOverZone === 'red' ? 'Suelta aquí' : 'Selecciona o arrastra un tema'}
                       </div>
                     </div>
                   )}
@@ -255,7 +255,7 @@ const Comparador = () => {
             {/* Alert Selection Grid */}
             <div className="space-y-4">
               <h3 className="text-lg sm:text-xl font-semibold text-center text-foreground/80">
-                Selecciona los tópicos para comparar
+                Selecciona los temas para comparar
               </h3>
               
               {isLoadingAlerts ? (

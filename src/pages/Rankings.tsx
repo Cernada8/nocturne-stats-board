@@ -49,8 +49,8 @@ const Rankings = () => {
       glow: 'shadow-orange-500/50'
     },
     {
-      id: 'lenguajes',
-      title: 'Lenguajes',
+      id: 'idiomas',
+      title: 'Idiomas',
       icon: Languages,
       description: 'Idiomas más usados',
       gradient: 'from-indigo-500/20 via-violet-500/20 to-indigo-500/20',
@@ -185,8 +185,8 @@ const Rankings = () => {
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-3xl font-bold text-white mb-2 group-hover:text-purple-300 transition-colors duration-300">Tópicos</h3>
-                  <p className="text-base text-white/70">Ranking de tópicos más activos</p>
+                  <h3 className="text-3xl font-bold text-white mb-2 group-hover:text-purple-300 transition-colors duration-300">Temas</h3>
+                  <p className="text-base text-white/70">Ranking de temas más activos</p>
                 </div>
               </div>
             </Card>
@@ -259,7 +259,7 @@ const Rankings = () => {
 
             {/* Lenguajes */}
             <Card
-              onClick={() => handleCardClick('lenguajes')}
+              onClick={() => handleCardClick('idiomas')}
               className="col-span-1 row-span-1 glass-card p-6 cursor-pointer transition-all duration-500 hover:bg-white/5 border border-white/10 group relative overflow-hidden"
             >
               <div className={`absolute inset-0 bg-gradient-to-br ${rankingCards[4].gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
@@ -273,7 +273,7 @@ const Rankings = () => {
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white mb-1 group-hover:text-indigo-300 transition-colors duration-300">Lenguajes</h3>
+                  <h3 className="text-xl font-bold text-white mb-1 group-hover:text-indigo-300 transition-colors duration-300">Idiomas</h3>
                   <p className="text-xs text-white/70">Idiomas más usados</p>
                 </div>
               </div>

@@ -23,10 +23,12 @@ import Fuentes from "./pages/Fuentes";
 import Paises from "./pages/Paises";
 import MapaCalor from "./pages/MapaCalor";
 import Comparador from "./pages/Comparador";
-import ComparandoTopicos from "./pages/ComparandoTopicos";
+import ComparandoTemas from "./pages/ComparandoTemas";
 import TopicCloud from "./pages/TopicCloud";
 import ListaMenciones from "./pages/ListaMenciones";
 import Alertas from "./pages/Alertas";
+import ConectarRedes from "./pages/ConectarRedes";
+import ArgosAI from "./pages/ArgosAI";
 
 const queryClient = new QueryClient();
 
@@ -137,10 +139,10 @@ const App = () => (
               } 
             />
             <Route 
-              path="/comparandoTopicos" 
+              path="/comparandoTemas" 
               element={
                 <ProtectedRoute>
-                  <ComparandoTopicos />
+                  <ComparandoTemas />
                 </ProtectedRoute>
               } 
             />
@@ -149,6 +151,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <TopicCloud />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/conectar-redes" 
+              element={
+                <ProtectedRoute>
+                  <ConectarRedes />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/argos-ai"
+              element={
+                <ProtectedRoute>
+                  <ArgosAI />
                 </ProtectedRoute>
               } 
             />
@@ -193,7 +211,7 @@ const App = () => (
               } 
             />
             <Route 
-              path="/rankings/lenguajes" 
+              path="/rankings/idiomas" 
               element={
                 <ProtectedRoute>
                   <RankingLenguajes />

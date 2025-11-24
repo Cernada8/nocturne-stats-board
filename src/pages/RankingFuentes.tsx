@@ -25,7 +25,7 @@ const RankingFuentes = () => {
   const [rankings, setRankings] = useState<SourceRanking[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
-    from: new Date(2020, 0, 1),
+    from: new Date(2025, 0, 1),
     to: new Date()
   });
   const [limit, setLimit] = useState<number>(5);
@@ -176,7 +176,7 @@ const RankingFuentes = () => {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 glass-card border-white/10" align="start">
-                <Calendar
+               <Calendar
                   mode="range"
                   selected={{ from: dateRange.from, to: dateRange.to }}
                   onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}

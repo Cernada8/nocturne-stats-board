@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, TrendingUp, Trophy, Menu, X, MapIcon, Swords, CloudIcon, AlertCircle, Bell } from 'lucide-react';
+import { Home, TrendingUp, Trophy, Menu, X, MapIcon, Swords, CloudIcon, AlertCircle, Bell, Share2, Bot } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const Sidebar = () => {
@@ -34,7 +34,7 @@ const Sidebar = () => {
     },
     {
       id: 'comparador',
-      name: 'Comparar topicos',
+      name: 'Comparar temas',
       icon: Swords,
       path: '/comparador'
     }, {
@@ -52,8 +52,22 @@ const Sidebar = () => {
       name: 'Alertas',
       icon: Bell,
       path: '/alertas'
+    },{
+      id: 'conectarRedes',
+      name: 'Conectar redes',
+      icon: Share2,
+      path: '/conectar-redes'
     },
   ];
+
+  const argosAIItem = {
+    id: 'ArgosAI',
+    name: 'ArgosAI',
+    icon: Bot,
+    path: '/argos-ai'
+  };
+
+  const isArgosActive = location.pathname === argosAIItem.path;
 
   return (
     <>
@@ -84,7 +98,7 @@ const Sidebar = () => {
         }`}
       >
         {/* Menu Items */}
-        <nav className="flex-1 p-4 pt-20 space-y-2">
+        <nav className="flex-1 p-4 pt-20 space-y-2 overflow-y-auto">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -109,10 +123,46 @@ const Sidebar = () => {
           })}
         </nav>
 
+        {/* ArgosAI Button - Destacado en la parte inferior */}
+        <div className="p-4">
+          <button
+            onClick={() => {
+              navigate(argosAIItem.path);
+              setIsOpen(false);
+            }}
+            className={`w-full relative overflow-hidden rounded-xl transition-all duration-300 group ${
+              isArgosActive 
+                ? 'bg-gradient-to-r from-purple-600 to-cyan-500 shadow-2xl shadow-purple-500/50 scale-105' 
+                : 'bg-gradient-to-r from-purple-500/20 to-cyan-500/20 hover:from-purple-500/30 hover:to-cyan-500/30 border border-purple-500/30'
+            }`}
+          >
+            {/* Efecto de brillo animado */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+            
+            <div className="relative flex items-center gap-3 px-4 py-4">
+              <Bot className={`w-6 h-6 ${isArgosActive ? 'text-white animate-pulse' : 'text-purple-400 group-hover:text-purple-300'}`} />
+              <div className="flex flex-col items-start">
+                <span className={`font-bold text-lg ${isArgosActive ? 'text-white' : 'text-foreground'}`}>
+                  {argosAIItem.name}
+                </span>
+                <span className={`text-xs ${isArgosActive ? 'text-white/80' : 'text-muted-foreground'}`}>
+                  Asistente IA
+                </span>
+              </div>
+              <div className="ml-auto">
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                </span>
+              </div>
+            </div>
+          </button>
+        </div>
+
         {/* Footer */}
         <div className="p-4 border-t border-white/10">
           <div className="text-xs text-muted-foreground text-center">
-            © 2024 ADGCO
+            © 2025 ADGCO
           </div>
         </div>
       </div>

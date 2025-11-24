@@ -32,6 +32,8 @@ import {
 import SoftMathBackground from '@/components/SoftMathBackground';
 import Header from '@/components/Header';
 import { useNavigate } from 'react-router-dom';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Alert {
   id: string;
@@ -66,7 +68,7 @@ const InformeSentimiento = () => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
-    from: new Date(2020, 0, 1),
+    from: new Date(2025, 0, 1),
     to: new Date()
   });
 
@@ -75,6 +77,7 @@ const InformeSentimiento = () => {
   
   const [isLoadingSources, setIsLoadingSources] = useState(false);
   const [isLoadingCountries, setIsLoadingCountries] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const sourceLabels: { [key: string]: string } = {
     'news-blogs': 'Noticias y Blogs',
@@ -197,6 +200,156 @@ const InformeSentimiento = () => {
     }
   };
 
+  const handleExportPDF = async () => {
+    if (sourceData.length === 0 && countryData.length === 0) {
+      toast.error('No hay datos para exportar');
+      return;
+    }
+    
+    setIsExporting(true);
+    toast.info('Generando PDF...');
+    
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      let yPosition = 20;
+
+      // Título principal
+      pdf.setFontSize(20);
+      pdf.setTextColor(40, 40, 40);
+      pdf.text('Informe Avanzado de Sentimiento', pageWidth / 2, yPosition, { align: 'center' });
+      
+      yPosition += 10;
+      pdf.setFontSize(12);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text('Análisis detallado por fuentes y geografía', pageWidth / 2, yPosition, { align: 'center' });
+      
+      // Información del reporte
+      yPosition += 15;
+      pdf.setFontSize(10);
+      pdf.setTextColor(80, 80, 80);
+      
+      const alertName = selectedAlertId 
+        ? alerts.find(a => a.id === selectedAlertId)?.name 
+        : 'Todos los temas';
+      
+      pdf.text(`Tema: ${alertName}`, 14, yPosition);
+      yPosition += 6;
+      
+      if (dateRange.from && dateRange.to) {
+        const dateStr = `${format(dateRange.from, 'dd MMM yyyy', { locale: es })} - ${format(dateRange.to, 'dd MMM yyyy', { locale: es })}`;
+        pdf.text(`Periodo: ${dateStr}`, 14, yPosition);
+      }
+      yPosition += 6;
+      
+      pdf.text(`Fecha de generación: ${format(new Date(), 'dd MMM yyyy HH:mm', { locale: es })}`, 14, yPosition);
+      yPosition += 12;
+
+      // Tabla de análisis por fuente
+      if (sourceData.length > 0) {
+        pdf.setFontSize(14);
+        pdf.setTextColor(40, 40, 40);
+        pdf.text('Análisis por Fuente', 14, yPosition);
+        yPosition += 8;
+
+        const sourceTableData = sourceData.map(source => [
+          sourceLabels[source.source] || source.source,
+          `${source.positive} (${source.positive_pct.toFixed(1)}%)`,
+          `${source.neutral} (${source.neutral_pct.toFixed(1)}%)`,
+          `${source.negative} (${source.negative_pct.toFixed(1)}%)`,
+          source.total.toLocaleString()
+        ]);
+
+        autoTable(pdf, {
+          startY: yPosition,
+          head: [['Fuente', 'Positivo', 'Neutral', 'Negativo', 'Total']],
+          body: sourceTableData,
+          theme: 'striped',
+          headStyles: {
+            fillColor: [100, 50, 150],
+            textColor: 255,
+            fontStyle: 'bold',
+            halign: 'center'
+          },
+          columnStyles: {
+            0: { halign: 'left', cellWidth: 50 },
+            1: { halign: 'center', cellWidth: 30 },
+            2: { halign: 'center', cellWidth: 30 },
+            3: { halign: 'center', cellWidth: 30 },
+            4: { halign: 'center', cellWidth: 30 }
+          },
+          styles: {
+            fontSize: 9,
+            cellPadding: 3
+          }
+        });
+
+        yPosition = (pdf as any).lastAutoTable.finalY + 15;
+      }
+
+      // Nueva página si es necesario
+      if (yPosition > 200 && countryData.length > 0) {
+        pdf.addPage();
+        yPosition = 20;
+      }
+
+      // Tabla de análisis geográfico
+      if (countryData.length > 0) {
+        pdf.setFontSize(14);
+        pdf.setTextColor(40, 40, 40);
+        pdf.text('Análisis Geográfico', 14, yPosition);
+        yPosition += 8;
+
+        const countryTableData = countryData.map(country => [
+          countryLabels[country.country] || country.country,
+          `${country.positive} (${country.positive_pct.toFixed(1)}%)`,
+          `${country.neutral} (${country.neutral_pct.toFixed(1)}%)`,
+          `${country.negative} (${country.negative_pct.toFixed(1)}%)`,
+          country.total.toLocaleString()
+        ]);
+
+        autoTable(pdf, {
+          startY: yPosition,
+          head: [['País', 'Positivo', 'Neutral', 'Negativo', 'Total']],
+          body: countryTableData,
+          theme: 'striped',
+          headStyles: {
+            fillColor: [50, 150, 200],
+            textColor: 255,
+            fontStyle: 'bold',
+            halign: 'center'
+          },
+          columnStyles: {
+            0: { halign: 'left', cellWidth: 50 },
+            1: { halign: 'center', cellWidth: 30 },
+            2: { halign: 'center', cellWidth: 30 },
+            3: { halign: 'center', cellWidth: 30 },
+            4: { halign: 'center', cellWidth: 30 }
+          },
+          styles: {
+            fontSize: 9,
+            cellPadding: 3
+          }
+        });
+      }
+
+      // Generar nombre de archivo y guardar
+      const alertNameFile = selectedAlertId 
+        ? alerts.find(a => a.id === selectedAlertId)?.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()
+        : 'todos-los-temas';
+      const dateStr = format(new Date(), 'yyyy-MM-dd');
+      const fileName = `informe-sentimiento-${alertNameFile}-${dateStr}.pdf`;
+
+      pdf.save(fileName);
+      toast.success('PDF exportado correctamente');
+    } catch (error) {
+      console.error('Error al exportar PDF:', error);
+      toast.error('Error al generar el PDF');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
@@ -290,9 +443,20 @@ const InformeSentimiento = () => {
               variant="outline"
               className="glass-effect border-white/10 hover:bg-white/10 text-white text-xs sm:text-sm w-full sm:w-auto"
               size="sm"
+              onClick={handleExportPDF}
+              disabled={isExporting || isLoadingSources || isLoadingCountries}
             >
-              <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-              Exportar PDF
+              {isExporting ? (
+                <>
+                  <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 mr-2 animate-spin" />
+                  Generando...
+                </>
+              ) : (
+                <>
+                  <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                  Exportar PDF
+                </>
+              )}
             </Button>
           </div>
 
@@ -307,7 +471,7 @@ const InformeSentimiento = () => {
                   <span className="truncate">
                     {selectedAlertId 
                       ? alerts.find(a => a.id === selectedAlertId)?.name 
-                      : "Todos los tópicos"}
+                      : "Todos los temas"}
                   </span>
                   <BookOpen className="ml-2 h-4 w-4 flex-shrink-0" />
                 </Button>
@@ -321,7 +485,7 @@ const InformeSentimiento = () => {
                     }`}
                     onClick={() => setSelectedAlertId(null)}
                   >
-                    Todos los tópicos
+                    Todos los temas
                   </Button>
                   {alerts.map((alert) => (
                     <Button
@@ -371,6 +535,8 @@ const InformeSentimiento = () => {
                   locale={es}
                   fromYear={1960}
                   toYear={2030}
+                  showPredefinedPeriods={true}
+                  onPredefinedPeriodSelect={(range) => setDateRange(range)}
                 />
               </PopoverContent>
             </Popover>

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import Sidebar from '@/components/Sidebar';
-import { Loader2, Calendar as CalendarIcon, BookOpen, TrendingUp, Users, Hash, ArrowLeft } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, BookOpen, TrendingUp, Users, Hash, ArrowLeft, FileDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiFetch } from '@/lib/api';
 import { format } from 'date-fns';
@@ -13,6 +13,8 @@ import { ResponsiveContainer, Area, AreaChart, CartesianGrid, XAxis, YAxis, Tool
 import SoftMathBackground from '@/components/SoftMathBackground';
 import Header from '@/components/Header';
 import { useNavigate } from 'react-router-dom';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface ReachData {
   date: string | number;
@@ -50,8 +52,9 @@ const Alcance = () => {
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingDrivers, setIsLoadingDrivers] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
-    from: new Date(2020, 0, 1),
+    from: new Date(2025, 0, 1),
     to: new Date()
   });
   const [interval, setInterval] = useState<'day' | 'week' | 'month' | 'year'>('month');
@@ -180,6 +183,242 @@ const Alcance = () => {
     }
   };
 
+const exportToPDF = async () => {
+    setIsExporting(true);
+    try {
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      let yPosition = 20;
+
+      // Header con gradiente simulado
+      doc.setFillColor(8, 47, 73);
+      doc.rect(0, 0, pageWidth, 40, 'F');
+      
+      // Título principal
+      doc.setTextColor(34, 211, 238);
+      doc.setFontSize(24);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Análisis de Alcance', pageWidth / 2, 20, { align: 'center' });
+      
+      // Subtítulo
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Reporte completo de métricas y engagement', pageWidth / 2, 30, { align: 'center' });
+
+      yPosition = 50;
+
+      // Información del reporte
+      doc.setTextColor(100, 116, 139);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      
+      const reportInfo = [
+        `Fecha de generación: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: es })}`,
+        `Período: ${dateRange.from ? format(dateRange.from, 'dd/MM/yyyy', { locale: es }) : ''} - ${dateRange.to ? format(dateRange.to, 'dd/MM/yyyy', { locale: es }) : ''}`,
+        `Tema: ${selectedAlertId ? alerts.find(a => a.id === selectedAlertId)?.name || 'Todos los temas' : 'Todos los temas'}`,
+        `Intervalo: ${intervals.find(i => i.value === interval)?.label}`,
+        `Criterio de ordenación: ${weightOptions.find(w => w.value === driverWeight)?.label}`
+      ];
+
+      reportInfo.forEach((info, index) => {
+        doc.text(info, 20, yPosition + (index * 6));
+      });
+
+      yPosition += 40;
+
+      // Sección 1: Evolución del Alcance
+      doc.setFillColor(34, 211, 238);
+      doc.rect(20, yPosition - 5, pageWidth - 40, 0.5, 'F');
+      
+      doc.setTextColor(34, 211, 238);
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text('EVOLUCIÓN DEL ALCANCE', 20, yPosition);
+      
+      yPosition += 10;
+
+      if (reachData.length > 0) {
+        const evolutionTableData = reachData.map(item => [
+          item.date.toString(),
+          item.reach.toLocaleString('es-ES')
+        ]);
+
+        autoTable(doc, {
+          startY: yPosition,
+          head: [['Período', 'Alcance Total']],
+          body: evolutionTableData,
+          theme: 'grid',
+          headStyles: {
+            fillColor: [34, 211, 238],
+            textColor: [8, 47, 73],
+            fontStyle: 'bold',
+            fontSize: 11
+          },
+          bodyStyles: {
+            textColor: [51, 65, 85],
+            fontSize: 10
+          },
+          alternateRowStyles: {
+            fillColor: [241, 245, 249]
+          },
+          margin: { left: 20, right: 20 },
+          columnStyles: {
+            0: { cellWidth: 60 },
+            1: { cellWidth: 'auto', halign: 'right' }
+          }
+        });
+
+        yPosition = (doc as any).lastAutoTable.finalY + 15;
+      }
+
+      // Verificar si necesitamos nueva página
+      if (yPosition > pageHeight - 80) {
+        doc.addPage();
+        yPosition = 20;
+      }
+
+      // Sección 2: Top Autores
+      doc.setFillColor(59, 130, 246);
+      doc.rect(20, yPosition - 5, pageWidth - 40, 0.5, 'F');
+      
+      doc.setTextColor(59, 130, 246);
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`TOP ${driverLimit} AUTORES`, 20, yPosition);
+      
+      yPosition += 10;
+
+      if (authorsData.length > 0) {
+        const authorsTableData = authorsData.map((author, index) => [
+          `#${index + 1}`,
+          author.author,
+          author.mentions.toLocaleString('es-ES'),
+          author.total_reach.toLocaleString('es-ES'),
+          Math.round(author.avg_reach).toLocaleString('es-ES')
+        ]);
+
+        autoTable(doc, {
+          startY: yPosition,
+          head: [['#', 'Autor', 'Menciones', 'Alcance Total', 'Alcance Promedio']],
+          body: authorsTableData,
+          theme: 'grid',
+          headStyles: {
+            fillColor: [59, 130, 246],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 10
+          },
+          bodyStyles: {
+            textColor: [51, 65, 85],
+            fontSize: 9
+          },
+          alternateRowStyles: {
+            fillColor: [241, 245, 249]
+          },
+          margin: { left: 20, right: 20 },
+          columnStyles: {
+            0: { cellWidth: 15, halign: 'center' },
+            1: { cellWidth: 60 },
+            2: { cellWidth: 30, halign: 'right' },
+            3: { cellWidth: 35, halign: 'right' },
+            4: { cellWidth: 35, halign: 'right' }
+          }
+        });
+
+        yPosition = (doc as any).lastAutoTable.finalY + 15;
+      }
+
+      // Verificar si necesitamos nueva página
+      if (yPosition > pageHeight - 80) {
+        doc.addPage();
+        yPosition = 20;
+      }
+
+      // Sección 3: Top Keywords
+      doc.setFillColor(139, 92, 246);
+      doc.rect(20, yPosition - 5, pageWidth - 40, 0.5, 'F');
+      
+      doc.setTextColor(139, 92, 246);
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`TOP ${driverLimit} KEYWORDS`, 20, yPosition);
+      
+      yPosition += 10;
+
+      if (keywordsData.length > 0) {
+        const keywordsTableData = keywordsData.map((keyword, index) => [
+          `#${index + 1}`,
+          keyword.keyword,
+          keyword.mentions.toLocaleString('es-ES'),
+          keyword.total_reach.toLocaleString('es-ES'),
+          Math.round(keyword.avg_reach).toLocaleString('es-ES')
+        ]);
+
+        autoTable(doc, {
+          startY: yPosition,
+          head: [['#', 'Keyword', 'Menciones', 'Alcance Total', 'Alcance Promedio']],
+          body: keywordsTableData,
+          theme: 'grid',
+          headStyles: {
+            fillColor: [139, 92, 246],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 10
+          },
+          bodyStyles: {
+            textColor: [51, 65, 85],
+            fontSize: 9
+          },
+          alternateRowStyles: {
+            fillColor: [241, 245, 249]
+          },
+          margin: { left: 20, right: 20 },
+          columnStyles: {
+            0: { cellWidth: 15, halign: 'center' },
+            1: { cellWidth: 60 },
+            2: { cellWidth: 30, halign: 'right' },
+            3: { cellWidth: 35, halign: 'right' },
+            4: { cellWidth: 35, halign: 'right' }
+          }
+        });
+      }
+
+      // Footer en todas las páginas
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(9);
+        doc.setTextColor(148, 163, 184);
+        doc.setFont('helvetica', 'normal');
+        doc.text(
+          `© ${new Date().getFullYear()} ADGCO - Argos Platform`,
+          pageWidth / 2,
+          pageHeight - 10,
+          { align: 'center' }
+        );
+        doc.text(
+          `Página ${i} de ${totalPages}`,
+          pageWidth - 20,
+          pageHeight - 10,
+          { align: 'right' }
+        );
+      }
+
+      // Guardar PDF
+      const fileName = `Analisis_Alcance_${format(new Date(), 'yyyy-MM-dd_HHmm')}.pdf`;
+      doc.save(fileName);
+      
+      toast.success('PDF exportado correctamente');
+    } catch (error) {
+      toast.error('Error al exportar PDF');
+      console.error(error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const formatNumber = (num: number) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
@@ -244,24 +483,45 @@ const Alcance = () => {
         <div className="p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl mx-auto space-y-4 sm:space-y-6 lg:space-y-8">
           <Header />
 
-          {/* Title with Back Button - Responsive */}
-          <div className="flex items-center gap-3 sm:gap-4">
-            <Button
-              onClick={() => navigate('/estadisticas')}
-              variant="outline"
-              size="icon"
-              className="glass-effect border-white/10 hover:bg-white/10 text-white h-8 w-8 sm:h-10 sm:w-10"
-            >
-              <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
-            </Button>
-            <div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-1 sm:mb-2">
-                Análisis de Alcance
-              </h1>
-              <p className="text-xs sm:text-sm lg:text-base text-white/70">
-                Dashboard completo de métricas y engagement
-              </p>
+          {/* Title with Back Button and Export - Responsive */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <Button
+                onClick={() => navigate('/estadisticas')}
+                variant="outline"
+                size="icon"
+                className="glass-effect border-white/10 hover:bg-white/10 text-white h-8 w-8 sm:h-10 sm:w-10 shrink-0"
+              >
+                <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+              </Button>
+              <div>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-1 sm:mb-2">
+                  Análisis de Alcance
+                </h1>
+                <p className="text-xs sm:text-sm lg:text-base text-white/70">
+                  Dashboard completo de métricas y engagement
+                </p>
+              </div>
             </div>
+
+            {/* Export PDF Button */}
+            <Button
+              onClick={exportToPDF}
+              disabled={isExporting || isLoading || isLoadingDrivers || reachData.length === 0}
+              className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white border-0 shadow-lg shadow-cyan-500/30 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isExporting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Exportando...
+                </>
+              ) : (
+                <>
+                  <FileDown className="mr-2 h-4 w-4" />
+                  Exportar PDF
+                </>
+              )}
+            </Button>
           </div>
 
           {/* Filters - Responsive */}
@@ -275,7 +535,7 @@ const Alcance = () => {
                   <span className="truncate">
                     {selectedAlertId 
                       ? alerts.find(a => a.id === selectedAlertId)?.name 
-                      : "Todos los tópicos"}
+                      : "Todos los temas"}
                   </span>
                   <BookOpen className="ml-2 h-4 w-4 flex-shrink-0" />
                 </Button>
@@ -289,7 +549,7 @@ const Alcance = () => {
                     }`}
                     onClick={() => setSelectedAlertId(null)}
                   >
-                    Todos los tópicos
+                    Todos los temas
                   </Button>
                   {alerts.map((alert) => (
                     <Button
@@ -339,6 +599,8 @@ const Alcance = () => {
                   locale={es}
                   fromYear={1960}
                   toYear={2030}
+                  showPredefinedPeriods={true}
+                  onPredefinedPeriodSelect={(range) => setDateRange(range)}
                 />
               </PopoverContent>
             </Popover>

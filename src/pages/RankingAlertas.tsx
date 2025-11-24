@@ -26,7 +26,7 @@ const RankingAlertas = () => {
   const [rankings, setRankings] = useState<AlertRanking[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
-    from: new Date(2020, 0, 1),
+    from: new Date(2025, 0, 1),
     to: new Date()
   });
   const [limit, setLimit] = useState<number>(5);
@@ -116,10 +116,10 @@ const RankingAlertas = () => {
             </Button>
             <div className="flex-1 min-w-0">
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-1 sm:mb-2">
-                Ranking de Tópicos
+                Ranking de Temas
               </h1>
               <p className="text-sm sm:text-base text-white/70">
-                Top de tópicos ordenados por menciones o alcance
+                Top de temas ordenados por menciones o alcance
               </p>
             </div>
           </div>

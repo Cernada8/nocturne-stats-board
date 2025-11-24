@@ -3,8 +3,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import Sidebar from '@/components/Sidebar';
-import { Loader2, Calendar as CalendarIcon, Bell, TrendingUp, Smile, Meh, Frown, FileText, ArrowLeft } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, Bell, TrendingUp, Smile, Meh, Frown, FileText, ArrowLeft, GitCompare } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiFetch } from '@/lib/api';
 import { format } from 'date-fns';
@@ -13,6 +14,8 @@ import { ResponsiveContainer, Area, AreaChart, CartesianGrid, XAxis, YAxis, Tool
 import SoftMathBackground from '@/components/SoftMathBackground';
 import Header from '@/components/Header';
 import { useNavigate } from 'react-router-dom';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Alert {
   id: string;
@@ -57,7 +60,7 @@ const Sentimiento = () => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
-    from: new Date(2020, 0, 1),
+    from: new Date(2025, 0, 1),
     to: new Date()
   });
   const [interval, setInterval] = useState<'day' | 'week' | 'month' | 'year'>('month');
@@ -69,6 +72,18 @@ const Sentimiento = () => {
   const [isLoadingDistribution, setIsLoadingDistribution] = useState(false);
   const [isLoadingTrend, setIsLoadingTrend] = useState(false);
   const [isLoadingScore, setIsLoadingScore] = useState(false);
+
+  // Estados para comparación
+  const [showCompareDialog, setShowCompareDialog] = useState(false);
+  const [period1, setPeriod1] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined
+  });
+  const [period2, setPeriod2] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined
+  });
+  const [isComparing, setIsComparing] = useState(false);
 
   const intervals = [
     { value: 'day' as const, label: 'Diario', shortLabel: 'D' },
@@ -202,6 +217,272 @@ const Sentimiento = () => {
     }
   };
 
+  // Función para obtener datos de un periodo específico
+  const fetchPeriodData = async (from: Date, to: Date) => {
+    const fromStr = format(from, 'yyyy-MM-dd');
+    const toStr = format(to, 'yyyy-MM-dd');
+    
+    let distributionEndpoint = `/api/stats/sentiment/distribution?company_id=${companyId}&from=${fromStr}&to=${toStr}`;
+    let scoreEndpoint = `/api/stats/sentiment/score?company_id=${companyId}&from=${fromStr}&to=${toStr}&weight=mentions`;
+    
+    if (selectedAlertId) {
+      distributionEndpoint += `&alert_id=${selectedAlertId}`;
+      scoreEndpoint += `&alert_id=${selectedAlertId}`;
+    }
+    
+    const [distResponse, scoreResponse] = await Promise.all([
+      apiFetch(distributionEndpoint),
+      apiFetch(scoreEndpoint)
+    ]);
+    
+    const distResult = await distResponse.json();
+    const scoreResult = await scoreResponse.json();
+    
+    return {
+      distribution: distResult.data.sentiment_distribution,
+      score: scoreResult.data
+    };
+  };
+
+  const handleCompare = async () => {
+    if (!period1.from || !period1.to || !period2.from || !period2.to) {
+      toast.error('Por favor selecciona ambos periodos');
+      return;
+    }
+
+    setIsComparing(true);
+    toast.info('Generando comparación...');
+
+    try {
+      // Obtener datos de ambos periodos
+      const [data1, data2] = await Promise.all([
+        fetchPeriodData(period1.from, period1.to),
+        fetchPeriodData(period2.from, period2.to)
+      ]);
+
+      // Generar PDF
+      generateComparisonPDF(data1, data2);
+      
+      toast.success('Comparación generada correctamente');
+      setShowCompareDialog(false);
+    } catch (error) {
+      console.error('Error al comparar periodos:', error);
+      toast.error('Error al generar la comparación');
+    } finally {
+      setIsComparing(false);
+    }
+  };
+
+  const generateComparisonPDF = (data1: any, data2: any) => {
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    let yPosition = 20;
+
+    // Título principal
+    pdf.setFontSize(22);
+    pdf.setTextColor(40, 40, 40);
+    pdf.text('Comparación de Periodos', pageWidth / 2, yPosition, { align: 'center' });
+    
+    yPosition += 8;
+    pdf.setFontSize(14);
+    pdf.setTextColor(100, 100, 100);
+    pdf.text('Análisis Comparativo de Sentimiento', pageWidth / 2, yPosition, { align: 'center' });
+    
+    // Información de periodos
+    yPosition += 15;
+    pdf.setFontSize(11);
+    pdf.setTextColor(80, 80, 80);
+    
+    const alertName = selectedAlertId 
+      ? alerts.find(a => a.id === selectedAlertId)?.name 
+      : 'Todos los temas';
+    
+    pdf.text(`Tema: ${alertName}`, 14, yPosition);
+    yPosition += 7;
+    
+    if (period1.from && period1.to) {
+      const period1Str = `${format(period1.from, 'dd MMM yyyy', { locale: es })} - ${format(period1.to, 'dd MMM yyyy', { locale: es })}`;
+      pdf.setTextColor(59, 130, 246);
+      pdf.text(`Periodo 1: ${period1Str}`, 14, yPosition);
+    }
+    yPosition += 7;
+    
+    if (period2.from && period2.to) {
+      const period2Str = `${format(period2.from, 'dd MMM yyyy', { locale: es })} - ${format(period2.to, 'dd MMM yyyy', { locale: es })}`;
+      pdf.setTextColor(168, 85, 247);
+      pdf.text(`Periodo 2: ${period2Str}`, 14, yPosition);
+    }
+    yPosition += 7;
+    
+    pdf.setTextColor(80, 80, 80);
+    pdf.text(`Fecha de generación: ${format(new Date(), 'dd MMM yyyy HH:mm', { locale: es })}`, 14, yPosition);
+    yPosition += 15;
+
+    // Tabla de Score Comparativo
+    pdf.setFontSize(14);
+    pdf.setTextColor(40, 40, 40);
+    pdf.text('Índice de Sentimiento', 14, yPosition);
+    yPosition += 8;
+
+    const scoreTableData = [
+      [
+        'Score General',
+        data1.score.score.index.toFixed(1),
+        data2.score.score.index.toFixed(1),
+        (data2.score.score.index - data1.score.score.index).toFixed(1)
+      ],
+      [
+        '% Positivo',
+        `${data1.score.score.ratios.positive_ratio.toFixed(1)}%`,
+        `${data2.score.score.ratios.positive_ratio.toFixed(1)}%`,
+        `${(data2.score.score.ratios.positive_ratio - data1.score.score.ratios.positive_ratio).toFixed(1)}%`
+      ],
+      [
+        '% Neutral',
+        `${data1.score.score.ratios.neutral_ratio.toFixed(1)}%`,
+        `${data2.score.score.ratios.neutral_ratio.toFixed(1)}%`,
+        `${(data2.score.score.ratios.neutral_ratio - data1.score.score.ratios.neutral_ratio).toFixed(1)}%`
+      ],
+      [
+        '% Negativo',
+        `${data1.score.score.ratios.negative_ratio.toFixed(1)}%`,
+        `${data2.score.score.ratios.negative_ratio.toFixed(1)}%`,
+        `${(data2.score.score.ratios.negative_ratio - data1.score.score.ratios.negative_ratio).toFixed(1)}%`
+      ]
+    ];
+
+    autoTable(pdf, {
+      startY: yPosition,
+      head: [['Métrica', 'Periodo 1', 'Periodo 2', 'Diferencia']],
+      body: scoreTableData,
+      theme: 'striped',
+      headStyles: {
+        fillColor: [59, 130, 246],
+        textColor: 255,
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      columnStyles: {
+        0: { halign: 'left', cellWidth: 50 },
+        1: { halign: 'center', cellWidth: 40 },
+        2: { halign: 'center', cellWidth: 40 },
+        3: { halign: 'center', cellWidth: 40, fontStyle: 'bold' }
+      },
+      styles: {
+        fontSize: 10,
+        cellPadding: 4
+      }
+    });
+
+    yPosition = (pdf as any).lastAutoTable.finalY + 15;
+
+    // Tabla de Menciones Totales
+    pdf.setFontSize(14);
+    pdf.setTextColor(40, 40, 40);
+    pdf.text('Volumen de Menciones', 14, yPosition);
+    yPosition += 8;
+
+    const mentionsTableData = [
+      [
+        'Menciones Positivas',
+        data1.score.totals.positive.toLocaleString(),
+        data2.score.totals.positive.toLocaleString(),
+        (data2.score.totals.positive - data1.score.totals.positive).toLocaleString()
+      ],
+      [
+        'Menciones Neutrales',
+        data1.score.totals.neutral.toLocaleString(),
+        data2.score.totals.neutral.toLocaleString(),
+        (data2.score.totals.neutral - data1.score.totals.neutral).toLocaleString()
+      ],
+      [
+        'Menciones Negativas',
+        data1.score.totals.negative.toLocaleString(),
+        data2.score.totals.negative.toLocaleString(),
+        (data2.score.totals.negative - data1.score.totals.negative).toLocaleString()
+      ],
+      [
+        'Total Menciones',
+        data1.score.totals.total_mentions.toLocaleString(),
+        data2.score.totals.total_mentions.toLocaleString(),
+        (data2.score.totals.total_mentions - data1.score.totals.total_mentions).toLocaleString()
+      ]
+    ];
+
+    autoTable(pdf, {
+      startY: yPosition,
+      head: [['Tipo', 'Periodo 1', 'Periodo 2', 'Variación']],
+      body: mentionsTableData,
+      theme: 'striped',
+      headStyles: {
+        fillColor: [168, 85, 247],
+        textColor: 255,
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      columnStyles: {
+        0: { halign: 'left', cellWidth: 50 },
+        1: { halign: 'center', cellWidth: 40 },
+        2: { halign: 'center', cellWidth: 40 },
+        3: { halign: 'center', cellWidth: 40, fontStyle: 'bold' }
+      },
+      styles: {
+        fontSize: 10,
+        cellPadding: 4
+      }
+    });
+
+    yPosition = (pdf as any).lastAutoTable.finalY + 15;
+
+    // Resumen ejecutivo
+    if (yPosition > 220) {
+      pdf.addPage();
+      yPosition = 20;
+    }
+
+    pdf.setFontSize(14);
+    pdf.setTextColor(40, 40, 40);
+    pdf.text('Resumen Ejecutivo', 14, yPosition);
+    yPosition += 8;
+
+    pdf.setFontSize(10);
+    pdf.setTextColor(60, 60, 60);
+
+    const scoreDiff = data2.score.score.index - data1.score.score.index;
+    const scoreText = scoreDiff > 0 
+      ? `El sentimiento ha mejorado en ${scoreDiff.toFixed(1)} puntos.`
+      : scoreDiff < 0
+      ? `El sentimiento ha empeorado en ${Math.abs(scoreDiff).toFixed(1)} puntos.`
+      : 'El sentimiento se ha mantenido estable.';
+    
+    pdf.text(scoreText, 14, yPosition);
+    yPosition += 7;
+
+    const mentionsDiff = data2.score.totals.total_mentions - data1.score.totals.total_mentions;
+    const mentionsPercent = ((mentionsDiff / data1.score.totals.total_mentions) * 100).toFixed(1);
+    const mentionsText = mentionsDiff > 0
+      ? `El volumen de menciones aumentó en ${mentionsDiff.toLocaleString()} (${mentionsPercent}%).`
+      : mentionsDiff < 0
+      ? `El volumen de menciones disminuyó en ${Math.abs(mentionsDiff).toLocaleString()} (${Math.abs(parseFloat(mentionsPercent))}%).`
+      : 'El volumen de menciones se mantuvo constante.';
+    
+    pdf.text(mentionsText, 14, yPosition);
+    yPosition += 7;
+
+    const positiveDiff = data2.score.score.ratios.positive_ratio - data1.score.score.ratios.positive_ratio;
+    if (Math.abs(positiveDiff) > 2) {
+      const positiveText = positiveDiff > 0
+        ? `Las menciones positivas aumentaron ${positiveDiff.toFixed(1)} puntos porcentuales.`
+        : `Las menciones positivas disminuyeron ${Math.abs(positiveDiff).toFixed(1)} puntos porcentuales.`;
+      pdf.text(positiveText, 14, yPosition);
+    }
+
+    // Nombre del archivo
+    const dateStr = format(new Date(), 'yyyy-MM-dd');
+    const fileName = `comparacion-sentimiento-${dateStr}.pdf`;
+    pdf.save(fileName);
+  };
+
   const formatXAxis = (value: string) => {
     if (interval === 'year') return value.toString();
     if (interval === 'week') return value.toString();
@@ -308,7 +589,7 @@ const Sentimiento = () => {
                   <span className="truncate">
                     {selectedAlertId 
                       ? alerts.find(a => a.id === selectedAlertId)?.name 
-                      : "Todos los tópicos"}
+                      : "Todos los temas"}
                   </span>
                   <Bell className="ml-2 h-4 w-4 flex-shrink-0" />
                 </Button>
@@ -322,7 +603,8 @@ const Sentimiento = () => {
                     }`}
                     onClick={() => setSelectedAlertId(null)}
                   >
-Todos los tópicos                  </Button>
+                    Todos los temas
+                  </Button>
                   {alerts.map((alert) => (
                     <Button
                       key={alert.id}
@@ -371,10 +653,99 @@ Todos los tópicos                  </Button>
                   locale={es}
                   fromYear={1960}
                   toYear={2030}
+                  showPredefinedPeriods={true}
+                  onPredefinedPeriodSelect={(range) => setDateRange(range)}
                 />
               </PopoverContent>
             </Popover>
+
+            <Button
+              variant="outline"
+              className="glass-effect border-purple-300/30 hover:bg-purple-500/20 text-white w-full sm:w-auto text-sm"
+              onClick={() => setShowCompareDialog(true)}
+            >
+              <GitCompare className="mr-2 h-4 w-4 flex-shrink-0" />
+              <span>Comparar Periodos</span>
+            </Button>
           </div>
+
+          {/* Dialog de Comparación */}
+          <Dialog open={showCompareDialog} onOpenChange={setShowCompareDialog}>
+            <DialogContent className="glass-card border-white/10 text-white max-w-4xl">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold text-white">Comparar Periodos</DialogTitle>
+                <DialogDescription className="text-white/70">
+                  Selecciona dos periodos para comparar sus métricas de sentimiento
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                {/* Periodo 1 */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold text-blue-400">Periodo 1</h3>
+                  <Calendar
+                    mode="range"
+                    selected={{ from: period1.from, to: period1.to }}
+                    onSelect={(range) => setPeriod1({ from: range?.from, to: range?.to })}
+                    numberOfMonths={1}
+                    locale={es}
+                    fromYear={1960}
+                    toYear={2030}
+                    className="glass-effect border border-blue-400/30 rounded-lg p-3"
+                  />
+                  {period1.from && period1.to && (
+                    <p className="text-sm text-white/70 text-center">
+                      {format(period1.from, 'dd MMM yyyy', { locale: es })} - {format(period1.to, 'dd MMM yyyy', { locale: es })}
+                    </p>
+                  )}
+                </div>
+
+                {/* Periodo 2 */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold text-purple-400">Periodo 2</h3>
+                  <Calendar
+                    mode="range"
+                    selected={{ from: period2.from, to: period2.to }}
+                    onSelect={(range) => setPeriod2({ from: range?.from, to: range?.to })}
+                    numberOfMonths={1}
+                    locale={es}
+                    fromYear={1960}
+                    toYear={2030}
+                    className="glass-effect border border-purple-400/30 rounded-lg p-3"
+                  />
+                  {period2.from && period2.to && (
+                    <p className="text-sm text-white/70 text-center">
+                      {format(period2.from, 'dd MMM yyyy', { locale: es })} - {format(period2.to, 'dd MMM yyyy', { locale: es })}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <Button
+                  variant="outline"
+                  className="flex-1 glass-effect border-white/10 hover:bg-white/10 text-white"
+                  onClick={() => setShowCompareDialog(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                  onClick={handleCompare}
+                  disabled={isComparing || !period1.from || !period1.to || !period2.from || !period2.to}
+                >
+                  {isComparing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generando...
+                    </>
+                  ) : (
+                    'Generar Comparación'
+                  )}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* Score Card - Responsive */}
           <div className="relative">

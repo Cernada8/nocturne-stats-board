@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Send, MessageSquare, X, Minimize2 } from 'lucide-react';
+import { Loader2, Send, Sparkles, BarChart3, TrendingUp, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiFetch } from '@/lib/api';
 
@@ -14,13 +15,14 @@ interface Message {
 }
 
 const ArgosAI = () => {
+  const navigate = useNavigate();
   const { userEmail, companyId, setCompanyId } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (userEmail && !companyId) {
@@ -33,27 +35,16 @@ const ArgosAI = () => {
   }, [messages]);
 
   useEffect(() => {
-    if (messages.length === 0) {
-      setMessages([{
-        id: '1',
-        role: 'assistant',
-        content: '¡Hola! Soy **ArgosAI**, tu asistente inteligente de análisis de datos. Pregúntame sobre las menciones, el sentimiento, las fuentes o cualquier estadística del sistema de monitorización.',
-        timestamp: new Date()
-      }]);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
+    if (inputRef.current) {
       inputRef.current.focus();
     }
-  }, [isOpen]);
+  }, []);
 
   const fetchCompanyId = async () => {
     try {
       const response = await apiFetch(`/api/info/getIdEmpresa?email=${userEmail}`);
       if (!response.ok) throw new Error('Error al obtener ID de empresa');
-
+      
       const result = await response.json();
       setCompanyId(result.data.company_id.toString());
     } catch (error) {
@@ -125,15 +116,26 @@ const ArgosAI = () => {
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
-      inputRef.current?.focus();
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    
+    // Auto-resize textarea
+    const textarea = e.target;
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
   };
 
   const formatMessage = (content: string) => {
@@ -141,16 +143,15 @@ const ArgosAI = () => {
     const formatted: string[] = [];
     let inList = false;
     
-    lines.forEach((line, i) => {
+    lines.forEach((line) => {
       let trimmedLine = line.trim();
       
-      // Skip empty lines
       if (!trimmedLine) {
         if (inList) {
           formatted.push('</ul>');
           inList = false;
         }
-        formatted.push('<div class=\'mb-2\'></div>');
+        formatted.push('<div class="mb-3"></div>');
         return;
       }
       
@@ -161,7 +162,7 @@ const ArgosAI = () => {
           inList = false;
         }
         const text = trimmedLine.substring(4);
-        formatted.push('<h3 class=\'text-base sm:text-lg font-bold text-cyan-300 mt-4 mb-2\'>' + text + '</h3>');
+        formatted.push('<h3 class="text-lg font-semibold text-cyan-300 mt-4 mb-2">' + text + '</h3>');
         return;
       }
       
@@ -171,7 +172,7 @@ const ArgosAI = () => {
           inList = false;
         }
         const text = trimmedLine.substring(3);
-        formatted.push('<h2 class=\'text-lg sm:text-xl font-bold text-cyan-300 mt-4 mb-2\'>' + text + '</h2>');
+        formatted.push('<h2 class="text-xl font-semibold text-cyan-300 mt-4 mb-2">' + text + '</h2>');
         return;
       }
       
@@ -181,27 +182,27 @@ const ArgosAI = () => {
           inList = false;
         }
         const text = trimmedLine.substring(2);
-        formatted.push('<h1 class=\'text-xl sm:text-2xl font-bold text-cyan-300 mt-4 mb-2\'>' + text + '</h1>');
+        formatted.push('<h1 class="text-2xl font-bold text-cyan-300 mt-4 mb-2">' + text + '</h1>');
         return;
       }
       
       // Bold text
-      let processedLine = trimmedLine.replace(/\*\*(.*?)\*\*/g, '<strong class=\'text-cyan-300 font-semibold\'>$1</strong>');
+      let processedLine = trimmedLine.replace(/\*\*(.*?)\*\*/g, '<strong class="text-cyan-300 font-semibold">$1</strong>');
       
-      // Italic text (solo si no es parte de bold)
-      processedLine = processedLine.replace(/\*([^*]+)\*/g, '<em class=\'text-white/80 italic\'>$1</em>');
+      // Italic text
+      processedLine = processedLine.replace(/\*([^*]+)\*/g, '<em class="text-white/80 italic">$1</em>');
       
       // Inline code
-      processedLine = processedLine.replace(/`([^`]+)`/g, '<code class=\'bg-cyan-900/30 text-cyan-300 px-1.5 py-0.5 rounded text-xs font-mono\'>$1</code>');
+      processedLine = processedLine.replace(/`([^`]+)`/g, '<code class="bg-slate-800/50 text-cyan-300 px-2 py-0.5 rounded text-sm font-mono">$1</code>');
       
       // Bullet lists
       if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
         if (!inList) {
-          formatted.push('<ul class=\'list-none space-y-1.5 my-2\'>');
+          formatted.push('<ul class="list-none space-y-2 my-3">');
           inList = true;
         }
         const text = processedLine.substring(2);
-        formatted.push('<li class=\'flex gap-2 items-start\'><span class=\'text-cyan-400 shrink-0 mt-0.5\'>•</span><span>' + text + '</span></li>');
+        formatted.push('<li class="flex gap-3 items-start"><span class="text-cyan-400 mt-1.5">•</span><span class="flex-1">' + text + '</span></li>');
         return;
       }
       
@@ -214,7 +215,7 @@ const ArgosAI = () => {
         }
         const number = numberedMatch[1];
         const text = processedLine.replace(/^\d+\.\s+/, '');
-        formatted.push('<div class=\'flex gap-2 my-1.5 items-start\'><span class=\'text-cyan-400 font-semibold shrink-0\'>' + number + '.</span><span>' + text + '</span></div>');
+        formatted.push('<div class="flex gap-3 my-2 items-start"><span class="text-cyan-400 font-semibold">' + number + '.</span><span class="flex-1">' + text + '</span></div>');
         return;
       }
       
@@ -224,10 +225,9 @@ const ArgosAI = () => {
         inList = false;
       }
       
-      formatted.push('<div class=\'mb-2 leading-relaxed\'>' + processedLine + '</div>');
+      formatted.push('<div class="mb-3 leading-relaxed">' + processedLine + '</div>');
     });
     
-    // Close list if still open
     if (inList) {
       formatted.push('</ul>');
     }
@@ -236,184 +236,220 @@ const ArgosAI = () => {
   };
 
   return (
-    <>
-      <div className="fixed bottom-3 right-3 sm:bottom-6 sm:right-6 z-50">
-        <div className="relative">
-          <div className="absolute inset-0 bg-cyan-500/40 blur-xl sm:blur-2xl rounded-full animate-pulse"></div>
-          
-          <Button
-            onClick={() => setIsOpen(!isOpen)}
-            className="relative h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-gradient-to-br from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 shadow-2xl border-2 border-cyan-400/50 transition-all duration-300 hover:scale-110 p-0 overflow-hidden"
-          >
-            <img 
-              src="/assets/ArgosAI_logo.png" 
-              alt="ArgosAI" 
-              className="relative h-full w-full object-cover"
-            />
-            <div className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 sm:h-3 sm:w-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></div>
-          </Button>
-        </div>
-      </div>
-
-      {isOpen && (
-        <div className="fixed bottom-16 right-3 sm:bottom-24 sm:right-6 z-50 animate-fade-in">
-          <div className="relative w-[calc(100vw-1.5rem)] sm:w-[400px] lg:w-[450px]">
-            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 to-purple-500/20 blur-2xl rounded-3xl"></div>
+    <div className="min-h-screen bg-slate-950 flex flex-col">
+      {/* Header */}
+      <header className="sticky top-0 z-10 backdrop-blur-xl bg-slate-900/80 border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 lg:h-20">
+            <div className="flex items-center gap-3 lg:gap-4">
+              <Button
+                onClick={() => navigate('/dashboard')}
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              
+              <div className="relative">
+                <div className="absolute inset-0 bg-cyan-500/30 blur-lg rounded-full"></div>
+                <img 
+                  src="/assets/ArgosAI_logo.png" 
+                  alt="ArgosAI" 
+                  className="relative h-10 w-10 lg:h-12 lg:w-12 rounded-full border-2 border-cyan-400/50 object-cover"
+                />
+              </div>
+              <div>
+                <h1 className="text-xl lg:text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+                  ArgosAI
+                </h1>
+                <p className="text-xs lg:text-sm text-white/60 hidden sm:block">
+                  Asistente de Análisis Inteligente
+                </p>
+              </div>
+            </div>
             
-            <div className="relative glass-effect rounded-2xl sm:rounded-3xl border-2 border-white/20 shadow-2xl overflow-hidden flex flex-col h-[50vh] sm:h-[600px]">
-              <div className="p-3 sm:p-5 border-b border-white/10 bg-gradient-to-r from-cyan-600/10 to-purple-600/10">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 lg:gap-3">
+              <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10">
+                <div className="h-2 w-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-sm text-white/70">Online</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Chat Area */}
+      <main className="flex-1 overflow-hidden flex flex-col max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8">
+        {messages.length === 0 ? (
+          // Empty State
+          <div className="flex-1 flex items-center justify-center py-12">
+            <div className="text-center max-w-2xl mx-auto px-4">
+              <div className="relative inline-block mb-6 lg:mb-8">
+                <div className="absolute inset-0 bg-cyan-500/20 blur-2xl rounded-full"></div>
+                <Sparkles className="relative h-16 w-16 lg:h-20 lg:w-20 text-cyan-400" />
+              </div>
+              
+              <h2 className="text-2xl lg:text-4xl font-bold text-white mb-3 lg:mb-4">
+                Bienvenido a ArgosAI
+              </h2>
+              
+              <p className="text-base lg:text-lg text-white/60 mb-8 lg:mb-12">
+                Este asistente no tiene memoria (has de dar contexto en cada pregunta).<br />
+              </p>
+
+              <div className="grid sm:grid-cols-2 gap-4 lg:gap-6 text-left">
+                <div className="p-4 lg:p-6 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                  <BarChart3 className="h-8 w-8 text-cyan-400 mb-3" />
+                  <h3 className="text-base lg:text-lg font-semibold text-white mb-2">
+                    Análisis de Sentimiento
+                  </h3>
+                  <p className="text-sm text-white/60">
+                    Consulta el sentimiento de las menciones en tiempo real
+                  </p>
+                </div>
+
+                <div className="p-4 lg:p-6 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                  <TrendingUp className="h-8 w-8 text-purple-400 mb-3" />
+                  <h3 className="text-base lg:text-lg font-semibold text-white mb-2">
+                    Estadísticas
+                  </h3>
+                  <p className="text-sm text-white/60">
+                    Obtén métricas detalladas sobre fuentes y alcance
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          // Messages Area
+          <div className="flex-1 overflow-y-auto py-6 lg:py-8 space-y-6 lg:space-y-8 scrollbar-thin scrollbar-thumb-slate-700/50 scrollbar-track-transparent">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex gap-3 lg:gap-4 ${
+                  message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+                } animate-fade-in max-w-4xl ${
+                  message.role === 'user' ? 'ml-auto' : 'mr-auto'
+                }`}
+              >
+                {/* Avatar */}
+                <div className="shrink-0">
+                  {message.role === 'assistant' ? (
                     <div className="relative">
-                      <div className="absolute inset-0 bg-cyan-500/30 blur-md sm:blur-lg rounded-full"></div>
+                      <div className="absolute inset-0 bg-cyan-500/20 blur-md rounded-full"></div>
                       <img 
                         src="/assets/ArgosAI_logo.png" 
                         alt="ArgosAI" 
-                        className="relative h-8 w-8 sm:h-12 sm:w-12 rounded-full border border-cyan-400/50 sm:border-2 object-cover"
+                        className="relative h-8 w-8 lg:h-10 lg:w-10 rounded-full border-2 border-cyan-400/50 object-cover"
                       />
                     </div>
-                    <div>
-                      <h3 className="text-base sm:text-xl font-bold text-white">ArgosAI</h3>
-                      <p className="text-[10px] sm:text-xs text-white/60 flex items-center gap-1">
-                        <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 bg-green-400 rounded-full animate-pulse"></span>
-                        Online
-                      </p>
+                  ) : (
+                    <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold text-sm lg:text-base">
+                      {userEmail?.charAt(0).toUpperCase() || 'U'}
                     </div>
+                  )}
+                </div>
+
+                {/* Message Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2 mb-1.5">
+                    <span className="text-sm font-medium text-white">
+                      {message.role === 'assistant' ? 'ArgosAI' : 'Tú'}
+                    </span>
+                    <span className="text-xs text-white/40">
+                      {message.timestamp.toLocaleTimeString('es-ES', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </span>
                   </div>
                   
-                  <div className="flex items-center gap-1 sm:gap-2">
-                    <Button
-                      onClick={() => setIsOpen(false)}
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 sm:h-10 sm:w-10 rounded-full hover:bg-white/10 text-white/70 hover:text-white"
-                    >
-                      <Minimize2 className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
-                    </Button>
-                    <Button
-                      onClick={() => setIsOpen(false)}
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 sm:h-10 sm:w-10 rounded-full hover:bg-white/10 text-white/70 hover:text-white"
-                    >
-                      <X className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
-                    </Button>
+                  <div
+                    className={`rounded-2xl p-4 lg:p-6 ${
+                      message.role === 'user'
+                        ? 'bg-gradient-to-br from-purple-600/20 to-pink-600/20 border border-purple-500/30'
+                        : 'bg-slate-800/40 border border-white/10'
+                    }`}
+                  >
+                    <div 
+                      className="text-sm lg:text-base leading-relaxed text-white/90"
+                      dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
+                    />
                   </div>
                 </div>
               </div>
+            ))}
 
-              <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700/50 scrollbar-track-transparent hover:scrollbar-thumb-slate-600/70 p-2.5 sm:p-4 space-y-2.5 sm:space-y-4">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex gap-1.5 sm:gap-3 ${
-                      message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
-                    } animate-fade-in`}
-                  >
-                    {message.role === 'assistant' ? (
-                      <div className="relative shrink-0">
-                        <div className="absolute inset-0 bg-cyan-500/20 blur-sm sm:blur-md rounded-full"></div>
-                        <img 
-                          src="/assets/ArgosAI_logo.png" 
-                          alt="ArgosAI" 
-                          className="relative h-6 w-6 sm:h-8 sm:w-8 rounded-full border border-cyan-400/50 object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="relative shrink-0">
-                        <div className="absolute inset-0 bg-purple-500/20 blur-sm sm:blur-md rounded-full"></div>
-                        <div className="relative h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold text-[10px] sm:text-sm border border-purple-400/50">
-                          {userEmail?.charAt(0).toUpperCase() || 'U'}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className={`flex-1 min-w-0 ${message.role === 'user' ? 'flex justify-end' : ''}`}>
-                      <div
-                        className={`inline-block ${message.role === 'user' ? 'max-w-[85%]' : 'max-w-[95%]'} p-2.5 sm:p-4 rounded-xl sm:rounded-2xl ${
-                          message.role === 'user'
-                            ? 'bg-gradient-to-br from-purple-600/90 to-pink-600/90 text-white'
-                            : 'glass-effect border border-cyan-400/20'
-                        }`}
-                      >
-                        <div 
-                          className={`text-[11px] sm:text-sm leading-relaxed ${
-                            message.role === 'assistant' ? 'text-white/90' : 'text-white'
-                          }`}
-                          dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
-                        />
-                        <div className={`text-[9px] sm:text-[10px] mt-1 ${
-                          message.role === 'user' ? 'text-white/60' : 'text-white/40'
-                        }`}>
-                          {message.timestamp.toLocaleTimeString('es-ES', { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
-                        </div>
-                      </div>
-                    </div>
+            {isLoading && (
+              <div className="flex gap-3 lg:gap-4 animate-fade-in max-w-4xl">
+                <div className="shrink-0">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-cyan-500/20 blur-md rounded-full"></div>
+                    <img 
+                      src="/assets/ArgosAI_logo.png" 
+                      alt="ArgosAI" 
+                      className="relative h-8 w-8 lg:h-10 lg:w-10 rounded-full border-2 border-cyan-400/50 object-cover"
+                    />
                   </div>
-                ))}
-
-                {isLoading && (
-                  <div className="flex gap-1.5 sm:gap-3 animate-fade-in">
-                    <div className="relative shrink-0">
-                      <div className="absolute inset-0 bg-cyan-500/20 blur-sm sm:blur-md rounded-full"></div>
-                      <img 
-                        src="/assets/ArgosAI_logo.png" 
-                        alt="ArgosAI" 
-                        className="relative h-6 w-6 sm:h-8 sm:w-8 rounded-full border border-cyan-400/50 object-cover"
-                      />
-                    </div>
-                    <div className="glass-effect border border-cyan-400/20 p-2 sm:p-3 rounded-xl sm:rounded-2xl">
-                      <div className="flex items-center gap-1.5 sm:gap-2">
-                        <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-cyan-400" />
-                        <span className="text-[11px] sm:text-sm text-white/70">Pensando...</span>
-                      </div>
-                    </div>
+                </div>
+                <div className="bg-slate-800/40 border border-white/10 p-4 lg:p-6 rounded-2xl">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 lg:h-5 lg:w-5 animate-spin text-cyan-400" />
+                    <span className="text-sm lg:text-base text-white/70">Analizando...</span>
                   </div>
-                )}
-
-                <div ref={messagesEndRef} />
+                </div>
               </div>
+            )}
 
-              <div className="p-2.5 sm:p-4 border-t border-white/10 bg-gradient-to-r from-cyan-600/5 to-purple-600/5">
-                <div className="flex gap-1.5 sm:gap-2">
-                  <Input
-                    ref={inputRef}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+
+        {/* Input Area */}
+        <div className="sticky bottom-0 py-4 lg:py-6 bg-slate-950/95">
+          <div className="max-w-4xl mx-auto">
+            <div className="relative">
+              <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 rounded-2xl blur-lg"></div>
+              
+              <div className="relative bg-slate-800/50 backdrop-blur-xl border border-white/10 rounded-2xl p-3 lg:p-4 shadow-2xl">
+                <div className="flex gap-2 lg:gap-3 items-end">
+                  <textarea
+                    ref={textareaRef}
                     value={input}
-                    onChange={(e) => setInput(e.target.value)}
+                    onChange={handleInputChange}
                     onKeyPress={handleKeyPress}
                     placeholder="Escribe tu pregunta..."
-                    className="flex-1 bg-white/5 border border-white/10 focus-visible:ring-1 focus-visible:ring-cyan-400/50 focus-visible:border-cyan-400/50 text-white placeholder:text-white/40 text-xs sm:text-sm rounded-lg sm:rounded-xl h-9 sm:h-10"
+                    className="flex-1 bg-transparent border-0 focus:outline-none text-white placeholder:text-white/40 text-sm lg:text-base resize-none max-h-[120px] py-2"
+                    rows={1}
                     disabled={isLoading || !companyId}
                   />
                   
                   <Button
                     onClick={handleSendMessage}
                     disabled={isLoading || !input.trim() || !companyId}
-                    className="bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white rounded-lg sm:rounded-xl px-2.5 sm:px-4 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 shrink-0 h-9 w-9 sm:h-10 sm:w-auto"
-                    size="icon"
+                    className="bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white rounded-xl px-4 lg:px-6 h-10 lg:h-12 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 shrink-0"
                   >
                     {isLoading ? (
-                      <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
+                      <Loader2 className="h-5 w-5 animate-spin" />
                     ) : (
-                      <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      <>
+                        <Send className="h-5 w-5 lg:mr-2" />
+                        <span className="hidden lg:inline">Enviar</span>
+                      </>
                     )}
                   </Button>
                 </div>
-                
-                <p className="text-[9px] sm:text-[10px] text-white/40 mt-1.5 sm:mt-2 text-center flex items-center justify-center gap-1">
-                  <MessageSquare className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                  <span className="hidden sm:inline">Pregunta sobre sentimiento, fuentes, menciones...</span>
-                  <span className="sm:hidden">Pregunta sobre tus datos...</span>
-                </p>
               </div>
             </div>
+            
+            <p className="text-xs text-white/40 mt-3 text-center">
+              ArgosAI puede cometer errores. Verifica la información importante.
+            </p>
           </div>
         </div>
-      )}
-    </>
+      </main>
+    </div>
   );
 };
 

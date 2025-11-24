@@ -70,7 +70,7 @@ const Fuentes = () => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
-    from: new Date(2020, 0, 1),
+    from: new Date(2025, 0, 1),
     to: new Date()
   });
 
@@ -121,6 +121,26 @@ const Fuentes = () => {
     'twitter': '#0ea5e9',
     'instagram': '#ec4899',
     'facebook': '#6366f1'
+  };
+
+  // Función para navegar a lista de menciones con filtro de fuente
+  const handleSourceClick = (source: string) => {
+    const params = new URLSearchParams();
+    params.set('source', source);
+    
+    if (selectedAlertId) {
+      params.set('alert_id', selectedAlertId);
+    }
+    
+    if (dateRange.from) {
+      params.set('date_from', format(dateRange.from, 'yyyy-MM-dd'));
+    }
+    
+    if (dateRange.to) {
+      params.set('date_to', format(dateRange.to, 'yyyy-MM-dd'));
+    }
+    
+    navigate(`/lista-menciones?${params.toString()}`);
   };
 
   useEffect(() => {
@@ -283,6 +303,7 @@ const Fuentes = () => {
 
   const radarChartData = distribution.map(item => ({
     source: sourceLabels[item.source] || item.source,
+    sourceKey: item.source,
     value: item.percentage,
     mentions: item.mentions
   }));
@@ -301,6 +322,9 @@ const Fuentes = () => {
           <p className="text-white/70 text-xs mt-1">
             {data.payload.percentage.toFixed(1)}% del total
           </p>
+          <p className="text-cyan-400/70 text-xs mt-2 italic">
+            Click para ver menciones
+          </p>
         </div>
       );
     }
@@ -317,6 +341,9 @@ const Fuentes = () => {
               {sourceLabels[entry.name] || entry.name}: {entry.value}
             </p>
           ))}
+          <p className="text-cyan-400/70 text-xs mt-2 italic">
+            Click para ver menciones
+          </p>
         </div>
       );
     }
@@ -337,6 +364,9 @@ const Fuentes = () => {
           <p className="text-white text-xs sm:text-sm">
             Alcance: <span className="font-bold text-purple-400">{data.total_reach.toLocaleString()}</span>
           </p>
+          <p className="text-cyan-400/70 text-xs mt-2 italic">
+            Click para ver menciones
+          </p>
         </div>
       );
     }
@@ -344,10 +374,6 @@ const Fuentes = () => {
   };
 
   const shouldShowDots = trendChartData.length <= 30;
-
-  const getTotalDataPoints = () => {
-    return trendChartData.length * uniqueSources.length;
-  };
 
   return (
     <div className="min-h-screen max-h-screen overflow-hidden flex flex-col lg:flex-row">
@@ -389,7 +415,7 @@ const Fuentes = () => {
                   <span className="truncate">
                     {selectedAlertId
                       ? alerts.find(a => a.id === selectedAlertId)?.name
-                      : "Todos los tópicos"}
+                      : "Todos los temas"}
                   </span>
                   <BookOpen className="ml-2 h-4 w-4 shrink-0" />
                 </Button>
@@ -402,7 +428,8 @@ const Fuentes = () => {
                       }`}
                     onClick={() => setSelectedAlertId(null)}
                   >
-                    Todos los tópicos                  </Button>
+                    Todos los temas
+                  </Button>
                   {alerts.map((alert) => (
                     <Button
                       key={alert.id}
@@ -451,6 +478,8 @@ const Fuentes = () => {
                   fromYear={1960}
                   toYear={2030}
                   className="sm:hidden"
+                  showPredefinedPeriods={true}
+                  onPredefinedPeriodSelect={(range) => setDateRange(range)}
                 />
                 <Calendar
                   mode="range"
@@ -461,6 +490,8 @@ const Fuentes = () => {
                   fromYear={1960}
                   toYear={2030}
                   className="hidden sm:block"
+                  showPredefinedPeriods={true}
+                  onPredefinedPeriodSelect={(range) => setDateRange(range)}
                 />
               </PopoverContent>
             </Popover>
@@ -504,8 +535,14 @@ const Fuentes = () => {
                         <PolarGrid stroke="rgba(255, 255, 255, 0.2)" />
                         <PolarAngleAxis
                           dataKey="source"
-                          tick={{ fill: '#ffffff', fontSize: 10, fontWeight: 600 }}
+                          tick={{ fill: '#ffffff', fontSize: 10, fontWeight: 600, cursor: 'pointer' }}
                           className="sm:text-xs"
+                          onClick={(data) => {
+                            if (data && data.value) {
+                              const item = radarChartData.find(d => d.source === data.value);
+                              if (item) handleSourceClick(item.sourceKey);
+                            }
+                          }}
                         />
                         <PolarRadiusAxis
                           angle={90}
@@ -518,6 +555,8 @@ const Fuentes = () => {
                           stroke="#a855f7"
                           fill="#a855f7"
                           fillOpacity={0.6}
+                          onClick={(data) => data && handleSourceClick(data.sourceKey)}
+                          style={{ cursor: 'pointer' }}
                         />
                         <Tooltip content={({ active, payload }) => {
                           if (active && payload && payload.length) {
@@ -532,6 +571,9 @@ const Fuentes = () => {
                                 </p>
                                 <p className="text-white/70 text-xs mt-1">
                                   {data.mentions.toLocaleString()} menciones
+                                </p>
+                                <p className="text-purple-400/70 text-xs mt-2 italic">
+                                  Click para ver menciones
                                 </p>
                               </div>
                             );
@@ -556,13 +598,15 @@ const Fuentes = () => {
                           label={({ source, percentage }) =>
                             `${(sourceLabels[source] || source).substring(0, 10)}: ${percentage.toFixed(1)}%`
                           }
-                          style={{ fontSize: '10px' }}
+                          style={{ fontSize: '10px', cursor: 'pointer' }}
                           className="sm:text-xs"
+                          onClick={(data) => data && handleSourceClick(data.source)}
                         >
                           {distribution.map((entry, index) => (
                             <Cell
                               key={`cell-${index}`}
                               fill={sourceColors[entry.source] || `hsl(${index * 45}, 70%, 50%)`}
+                              style={{ cursor: 'pointer' }}
                             />
                           ))}
                         </Pie>
@@ -652,9 +696,10 @@ const Fuentes = () => {
                       />
                       <Tooltip content={<LineTooltip />} />
                       <Legend
-                        wrapperStyle={{ paddingTop: '10px', fontSize: '11px' }}
+                        wrapperStyle={{ paddingTop: '10px', fontSize: '11px', cursor: 'pointer' }}
                         formatter={(value) => sourceLabels[value] || value}
                         className="sm:text-xs"
+                        onClick={(data) => data && data.value && handleSourceClick(data.value)}
                       />
                       {uniqueSources.map((source, index) => (
                         <Line
@@ -663,9 +708,11 @@ const Fuentes = () => {
                           dataKey={source}
                           stroke={sourceColors[source] || `hsl(${index * 45}, 70%, 50%)`}
                           strokeWidth={2}
-                          dot={shouldShowDots ? { r: 3 } : false}
-                          activeDot={{ r: 5 }}
+                          dot={shouldShowDots ? { r: 3, cursor: 'pointer' } : false}
+                          activeDot={{ r: 5, cursor: 'pointer' }}
                           className="sm:stroke-[3]"
+                          onClick={() => handleSourceClick(source)}
+                          style={{ cursor: 'pointer' }}
                         />
                       ))}
                     </LineChart>
@@ -800,11 +847,14 @@ const Fuentes = () => {
                           dataKey={rankingOrderBy === 'reach' ? 'total_reach' : 'total_mentions'}
                           fill="#f97316"
                           radius={[8, 8, 0, 0]}
+                          onClick={(data) => data && handleSourceClick(data.source)}
+                          style={{ cursor: 'pointer' }}
                         >
                           {rankingData.map((entry, index) => (
                             <Cell
                               key={`cell-${index}`}
                               fill={sourceColors[entry.source] || '#f97316'}
+                              style={{ cursor: 'pointer' }}
                             />
                           ))}
                         </Bar>
@@ -834,7 +884,11 @@ const Fuentes = () => {
                         </thead>
                         <tbody className="divide-y divide-white/5">
                           {rankingData.map((item, index) => (
-                            <tr key={index} className="hover:bg-white/5 transition-colors">
+                            <tr 
+                              key={index} 
+                              className="hover:bg-white/5 transition-colors cursor-pointer"
+                              onClick={() => handleSourceClick(item.source)}
+                            >
                               <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
                                 <div className="flex items-center gap-2 sm:gap-3">
                                   <div

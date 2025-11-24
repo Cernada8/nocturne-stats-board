@@ -22,14 +22,16 @@ import {
     Smile,
     Frown,
     Meh,
-    X
+    X,
+    Info
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiFetch } from '@/lib/api';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { es } from 'date-fns/locale';
 import SoftMathBackground from '@/components/SoftMathBackground';
 import Header from '@/components/Header';
+import { useSearchParams } from 'react-router-dom';
 
 interface Alert {
     id: string;
@@ -61,17 +63,22 @@ interface PaginationInfo {
 
 const ListaMenciones = () => {
     const { userEmail, companyId, setCompanyId } = useAuth();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [alerts, setAlerts] = useState<Alert[]>([]);
     const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
     const [mentions, setMentions] = useState<Mention[]>([]);
     const [pagination, setPagination] = useState<PaginationInfo | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [fromUrlParams, setFromUrlParams] = useState(false);
 
     // Filtros
     const [searchTerm, setSearchTerm] = useState('');
     const [searchInput, setSearchInput] = useState('');
+    const [authorFilter, setAuthorFilter] = useState('');
     const [selectedSource, setSelectedSource] = useState<string | null>(null);
     const [selectedSentiment, setSelectedSentiment] = useState<string | null>(null);
+    const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
+    const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
     const [selectedOrder, setSelectedOrder] = useState<string>('mas_nuevo');
     const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
         from: new Date(1969, 0, 1),
@@ -89,6 +96,17 @@ const ListaMenciones = () => {
         { value: 'web', label: 'Web', icon: Globe },
     ];
 
+    const sourceLabels: { [key: string]: string } = {
+        'news-blogs': 'Noticias y Blogs',
+        'youtube': 'YouTube',
+        'web': 'Web',
+        'reddit': 'Reddit',
+        'vimeo': 'Vimeo',
+        'twitter': 'Twitter/X',
+        'instagram': 'Instagram',
+        'facebook': 'Facebook'
+    };
+
     const sentimentOptions = [
         { value: 'positive', label: 'Positivo', icon: Smile, color: 'text-green-400' },
         { value: 'negative', label: 'Negativo', icon: Frown, color: 'text-red-400' },
@@ -100,6 +118,118 @@ const ListaMenciones = () => {
         { value: 'mas_nuevo', label: 'Más Nuevo', shortLabel: 'Nuevo' },
         { value: 'mas_viejo', label: 'Más Viejo', shortLabel: 'Viejo' }
     ];
+
+    const languageOptions = [
+        { value: 'es', label: 'Español' },
+        { value: 'en', label: 'Inglés' },
+        { value: 'fr', label: 'Francés' },
+        { value: 'de', label: 'Alemán' },
+        { value: 'it', label: 'Italiano' },
+        { value: 'pt', label: 'Portugués' },
+        { value: 'ca', label: 'Catalán' },
+        { value: 'eu', label: 'Euskera' },
+        { value: 'gl', label: 'Gallego' }
+    ];
+
+    const countryOptions = [
+        { value: 'ES', label: 'España' },
+        { value: 'US', label: 'Estados Unidos' },
+        { value: 'MX', label: 'México' },
+        { value: 'AR', label: 'Argentina' },
+        { value: 'CO', label: 'Colombia' },
+        { value: 'FR', label: 'Francia' },
+        { value: 'DE', label: 'Alemania' },
+        { value: 'IT', label: 'Italia' },
+        { value: 'GB', label: 'Reino Unido' },
+        { value: 'BR', label: 'Brasil' }
+    ];
+
+    // Aplicar filtros de URL al cargar
+    useEffect(() => {
+        const sourceParam = searchParams.get('source');
+        const alertIdParam = searchParams.get('alert_id');
+        const dateFromParam = searchParams.get('date_from');
+        const dateToParam = searchParams.get('date_to');
+        const authorParam = searchParams.get('author');
+        const countryParam = searchParams.get('country');
+        const languageParam = searchParams.get('language');
+        const sentimentParam = searchParams.get('sentiment');
+        const orderParam = searchParams.get('order');
+        const searchParam = searchParams.get('search');
+        const textParam = searchParams.get('text');
+
+        const hasParams = sourceParam || alertIdParam || dateFromParam || dateToParam ||
+            authorParam || countryParam || languageParam || sentimentParam ||
+            orderParam || searchParam || textParam;
+
+        if (hasParams) {
+            const appliedFilters: string[] = [];
+
+            if (sourceParam) {
+                setSelectedSource(sourceParam);
+                appliedFilters.push(`Fuente: ${sourceLabels[sourceParam] || sourceParam}`);
+            }
+
+            if (alertIdParam) {
+                setSelectedAlertId(alertIdParam);
+            }
+
+            if (dateFromParam && dateToParam) {
+                try {
+                    const fromDate = parse(dateFromParam, 'yyyy-MM-dd', new Date());
+                    const toDate = parse(dateToParam, 'yyyy-MM-dd', new Date());
+                    setDateRange({ from: fromDate, to: toDate });
+                    appliedFilters.push(`Fechas: ${format(fromDate, 'dd/MM/yyyy')} - ${format(toDate, 'dd/MM/yyyy')}`);
+                } catch (error) {
+                    console.error('Error parsing dates from URL:', error);
+                }
+            }
+
+            if (authorParam) {
+                setAuthorFilter(authorParam);
+                appliedFilters.push(`Autor: ${authorParam}`);
+            }
+
+            if (countryParam) {
+                setSelectedCountry(countryParam);
+                const country = countryOptions.find(c => c.value === countryParam);
+                appliedFilters.push(`País: ${country?.label || countryParam}`);
+            }
+
+            if (languageParam) {
+                setSelectedLanguage(languageParam);
+                const language = languageOptions.find(l => l.value === languageParam);
+                appliedFilters.push(`Idioma: ${language?.label || languageParam}`);
+            }
+
+            if (sentimentParam) {
+                setSelectedSentiment(sentimentParam);
+                const sentiment = sentimentOptions.find(s => s.value === sentimentParam);
+                appliedFilters.push(`Sentimiento: ${sentiment?.label || sentimentParam}`);
+            }
+
+            if (orderParam) {
+                setSelectedOrder(orderParam);
+            }
+
+            // POR ESTE:
+            if (searchParam || textParam) {
+                const searchValue = searchParam || textParam;  // Usa search si existe, sino text
+                setSearchTerm(searchValue);
+                setSearchInput(searchValue);
+                appliedFilters.push(`Búsqueda: "${searchValue}"`);
+            }
+
+            setFromUrlParams(true);
+
+            if (appliedFilters.length > 0) {
+                toast.success(`Filtros aplicados: ${appliedFilters.join(', ')}`);
+            }
+
+            // Limpiar los parámetros de la URL después de aplicarlos
+            setSearchParams(new URLSearchParams());
+        }
+    }, []); // Solo ejecutar una vez al montar
 
     useEffect(() => {
         if (userEmail && !companyId) {
@@ -117,7 +247,7 @@ const ListaMenciones = () => {
         if (companyId) {
             fetchMentions();
         }
-    }, [companyId, selectedAlertId, selectedSource, selectedSentiment, selectedOrder, dateRange, searchTerm, currentPage]);
+    }, [companyId, selectedAlertId, selectedSource, selectedSentiment, selectedLanguage, selectedCountry, selectedOrder, dateRange, searchTerm, authorFilter, currentPage]);
 
     const fetchCompanyId = async () => {
         try {
@@ -161,7 +291,10 @@ const ListaMenciones = () => {
             if (selectedAlertId) params.append('alert_id', selectedAlertId);
             if (selectedSource) params.append('source', selectedSource);
             if (selectedSentiment) params.append('sentiment', selectedSentiment);
+            if (selectedLanguage) params.append('language', selectedLanguage);
+            if (selectedCountry) params.append('country', selectedCountry);
             if (searchTerm) params.append('search', searchTerm);
+            if (authorFilter) params.append('author', authorFilter);
             if (dateRange.from) params.append('date_from', format(dateRange.from, 'yyyy-MM-dd'));
             if (dateRange.to) params.append('date_to', format(dateRange.to, 'yyyy-MM-dd'));
 
@@ -188,14 +321,18 @@ const ListaMenciones = () => {
         setSelectedAlertId(null);
         setSelectedSource(null);
         setSelectedSentiment(null);
+        setSelectedLanguage(null);
+        setSelectedCountry(null);
         setSearchInput('');
         setSearchTerm('');
+        setAuthorFilter('');
         setSelectedOrder('mas_nuevo');
         setDateRange({
             from: new Date(1969, 0, 1),
             to: new Date()
         });
         setCurrentPage(1);
+        setFromUrlParams(false);
     };
 
     const getSentimentInfo = (sentiment: string) => {
@@ -209,9 +346,9 @@ const ListaMenciones = () => {
         return reach.toString();
     };
 
-    const hasActiveFilters = selectedAlertId || selectedSource || selectedSentiment || searchTerm || 
+    const hasActiveFilters = selectedAlertId || selectedSource || selectedSentiment || selectedLanguage || selectedCountry || searchTerm || authorFilter ||
         (dateRange.from && dateRange.from.getTime() !== new Date(1969, 0, 1).getTime()) ||
-        (dateRange.to && dateRange.to.getTime() !== new Date().setHours(0,0,0,0));
+        (dateRange.to && dateRange.to.getTime() !== new Date().setHours(0, 0, 0, 0));
 
     return (
         <div className="min-h-screen max-h-screen overflow-hidden flex flex-col lg:flex-row">
@@ -231,6 +368,75 @@ const ListaMenciones = () => {
                             Explora y filtra todas las menciones
                         </p>
                     </div>
+
+                    {/* Info banner cuando viene de URL params */}
+                    {fromUrlParams && (
+                        <div className="relative">
+                            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-purple-500/20 blur-xl rounded-xl"></div>
+                            <div className="relative glass-card border border-cyan-400/30 p-3 sm:p-4 rounded-lg sm:rounded-xl">
+                                <div className="flex items-start gap-2 sm:gap-3">
+                                    <Info className="h-4 w-4 sm:h-5 sm:w-5 text-cyan-400 shrink-0 mt-0.5" />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs sm:text-sm text-white font-semibold mb-2">
+                                            Filtros aplicados desde URL:
+                                        </p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedSource && (
+                                                <span className="glass-effect px-2 py-1 rounded text-xs text-cyan-400 border border-cyan-400/30">
+                                                    {sourceLabels[selectedSource] || selectedSource}
+                                                </span>
+                                            )}
+                                            {authorFilter && (
+                                                <span className="glass-effect px-2 py-1 rounded text-xs text-purple-400 border border-purple-400/30">
+                                                    Autor: {authorFilter}
+                                                </span>
+                                            )}
+                                            {selectedCountry && (
+                                                <span className="glass-effect px-2 py-1 rounded text-xs text-green-400 border border-green-400/30">
+                                                    {countryOptions.find(c => c.value === selectedCountry)?.label}
+                                                </span>
+                                            )}
+                                            {selectedLanguage && (
+                                                <span className="glass-effect px-2 py-1 rounded text-xs text-blue-400 border border-blue-400/30">
+                                                    {languageOptions.find(l => l.value === selectedLanguage)?.label}
+                                                </span>
+                                            )}
+                                            {selectedSentiment && (
+                                                <span className="glass-effect px-2 py-1 rounded text-xs text-yellow-400 border border-yellow-400/30">
+                                                    {sentimentOptions.find(s => s.value === selectedSentiment)?.label}
+                                                </span>
+                                            )}
+                                            {searchTerm && (
+                                                <span className="glass-effect px-2 py-1 rounded text-xs text-pink-400 border border-pink-400/30">
+                                                    "{searchTerm}"
+                                                </span>
+                                            )}
+                                            {dateRange.from && dateRange.to &&
+                                                (dateRange.from.getTime() !== new Date(1969, 0, 1).getTime()) && (
+                                                    <span className="glass-effect px-2 py-1 rounded text-xs text-orange-400 border border-orange-400/30">
+                                                        {format(dateRange.from, 'dd/MM/yyyy')} - {format(dateRange.to, 'dd/MM/yyyy')}
+                                                    </span>
+                                                )}
+                                        </div>
+                                        <p className="text-xs text-white/70 mt-2">
+                                            Puedes modificar los filtros o limpiarlos para ver todas las menciones
+                                        </p>
+                                    </div>
+                                    <Button
+                                        onClick={() => {
+                                            handleClearFilters();
+                                            setFromUrlParams(false);
+                                        }}
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-400/10 h-auto p-1"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Search Bar */}
                     <div className="relative">
@@ -287,7 +493,7 @@ const ListaMenciones = () => {
                                             className={`w-full justify-start text-white hover:bg-white/10 text-xs ${!selectedAlertId ? 'bg-white/10' : ''}`}
                                             onClick={() => { setSelectedAlertId(null); setCurrentPage(1); }}
                                         >
-                                            Todos los tópicos
+                                            Todos los temas
                                         </Button>
                                         {alerts.map((alert) => (
                                             <Button
@@ -310,12 +516,13 @@ const ListaMenciones = () => {
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="glass-effect border-white/10 hover:bg-white/10 text-white text-xs h-7 sm:h-8 px-2 sm:px-3"
+                                        className={`glass-effect border-white/10 hover:bg-white/10 text-white text-xs h-7 sm:h-8 px-2 sm:px-3 ${selectedSource ? 'border-cyan-400/50 bg-cyan-400/10' : ''
+                                            }`}
                                     >
                                         <Globe className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
                                         <span className="hidden sm:inline">
                                             {selectedSource
-                                                ? sourceOptions.find(s => s.value === selectedSource)?.label || 'Fuente'
+                                                ? sourceLabels[selectedSource] || sourceOptions.find(s => s.value === selectedSource)?.label || 'Fuente'
                                                 : 'Fuentes'}
                                         </span>
                                         <span className="sm:hidden">Fuente</span>
@@ -327,7 +534,7 @@ const ListaMenciones = () => {
                                             variant="ghost"
                                             size="sm"
                                             className={`w-full justify-start text-white hover:bg-white/10 text-xs ${!selectedSource ? 'bg-white/10' : ''}`}
-                                            onClick={() => { setSelectedSource(null); setCurrentPage(1); }}
+                                            onClick={() => { setSelectedSource(null); setCurrentPage(1); setFromUrlParams(false); }}
                                         >
                                             Todas
                                         </Button>
@@ -337,7 +544,7 @@ const ListaMenciones = () => {
                                                 variant="ghost"
                                                 size="sm"
                                                 className={`w-full justify-start text-white hover:bg-white/10 text-xs ${selectedSource === source.value ? 'bg-white/10' : ''}`}
-                                                onClick={() => { setSelectedSource(source.value); setCurrentPage(1); }}
+                                                onClick={() => { setSelectedSource(source.value); setCurrentPage(1); setFromUrlParams(false); }}
                                             >
                                                 <source.icon className="mr-2 h-3 w-3" />
                                                 {source.label}
@@ -395,6 +602,140 @@ const ListaMenciones = () => {
                                                 {sentiment.label}
                                             </Button>
                                         ))}
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+
+                            {/* Language Filter */}
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="glass-effect border-white/10 hover:bg-white/10 text-white text-xs h-7 sm:h-8 px-2 sm:px-3"
+                                    >
+                                        <Globe className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+                                        <span className="hidden sm:inline">
+                                            {selectedLanguage
+                                                ? languageOptions.find(l => l.value === selectedLanguage)?.label || 'Idioma'
+                                                : 'Idioma'}
+                                        </span>
+                                        <span className="sm:hidden">Idioma</span>
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[140px] sm:w-[180px] p-2 glass-card border-white/10" align="start">
+                                    <div className="space-y-1 max-h-[250px] overflow-y-auto">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className={`w-full justify-start text-white hover:bg-white/10 text-xs ${!selectedLanguage ? 'bg-white/10' : ''}`}
+                                            onClick={() => { setSelectedLanguage(null); setCurrentPage(1); }}
+                                        >
+                                            Todos
+                                        </Button>
+                                        {languageOptions.map((language) => (
+                                            <Button
+                                                key={language.value}
+                                                variant="ghost"
+                                                size="sm"
+                                                className={`w-full justify-start text-white hover:bg-white/10 text-xs ${selectedLanguage === language.value ? 'bg-white/10' : ''}`}
+                                                onClick={() => { setSelectedLanguage(language.value); setCurrentPage(1); }}
+                                            >
+                                                {language.label}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+
+                            {/* Country Filter */}
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="glass-effect border-white/10 hover:bg-white/10 text-white text-xs h-7 sm:h-8 px-2 sm:px-3"
+                                    >
+                                        <Globe className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+                                        <span className="hidden sm:inline">
+                                            {selectedCountry
+                                                ? countryOptions.find(c => c.value === selectedCountry)?.label || 'País'
+                                                : 'País'}
+                                        </span>
+                                        <span className="sm:hidden">País</span>
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[160px] sm:w-[200px] p-2 glass-card border-white/10" align="start">
+                                    <div className="space-y-1 max-h-[250px] overflow-y-auto">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className={`w-full justify-start text-white hover:bg-white/10 text-xs ${!selectedCountry ? 'bg-white/10' : ''}`}
+                                            onClick={() => { setSelectedCountry(null); setCurrentPage(1); }}
+                                        >
+                                            Todos
+                                        </Button>
+                                        {countryOptions.map((country) => (
+                                            <Button
+                                                key={country.value}
+                                                variant="ghost"
+                                                size="sm"
+                                                className={`w-full justify-start text-white hover:bg-white/10 text-xs ${selectedCountry === country.value ? 'bg-white/10' : ''}`}
+                                                onClick={() => { setSelectedCountry(country.value); setCurrentPage(1); }}
+                                            >
+                                                {country.label}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+
+                            {/* Author Filter */}
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className={`glass-effect border-white/10 hover:bg-white/10 text-white text-xs h-7 sm:h-8 px-2 sm:px-3 ${authorFilter ? 'border-purple-400/50 bg-purple-400/10' : ''
+                                            }`}
+                                    >
+                                        <MessageSquare className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+                                        <span className="hidden sm:inline truncate max-w-[100px]">
+                                            {authorFilter || 'Autor'}
+                                        </span>
+                                        <span className="sm:hidden">Autor</span>
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[200px] sm:w-[250px] p-3 glass-card border-white/10" align="start">
+                                    <div className="space-y-2">
+                                        <label className="text-xs text-white/70">Filtrar por autor</label>
+                                        <div className="flex gap-2">
+                                            <Input
+                                                value={authorFilter}
+                                                onChange={(e) => setAuthorFilter(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        setCurrentPage(1);
+                                                    }
+                                                }}
+                                                placeholder="Nombre del autor..."
+                                                className="glass-card border-white/10 text-white placeholder:text-white/50 h-8 text-xs"
+                                            />
+                                        </div>
+                                        {authorFilter && (
+                                            <Button
+                                                onClick={() => {
+                                                    setAuthorFilter('');
+                                                    setCurrentPage(1);
+                                                }}
+                                                variant="ghost"
+                                                size="sm"
+                                                className="w-full text-white/70 hover:text-white hover:bg-white/10 text-xs"
+                                            >
+                                                <X className="mr-2 h-3 w-3" />
+                                                Limpiar autor
+                                            </Button>
+                                        )}
                                     </div>
                                 </PopoverContent>
                             </Popover>
@@ -464,6 +805,8 @@ const ListaMenciones = () => {
                                         fromYear={1960}
                                         toYear={2030}
                                         className="sm:hidden"
+                                        showPredefinedPeriods={true}
+                                        onPredefinedPeriodSelect={(range) => { setDateRange(range); setCurrentPage(1); }}
                                     />
                                     <Calendar
                                         mode="range"
@@ -474,6 +817,8 @@ const ListaMenciones = () => {
                                         fromYear={1960}
                                         toYear={2030}
                                         className="hidden sm:block"
+                                        showPredefinedPeriods={true}
+                                        onPredefinedPeriodSelect={(range) => { setDateRange(range); setCurrentPage(1); }}
                                     />
                                 </PopoverContent>
                             </Popover>
@@ -559,7 +904,7 @@ const ListaMenciones = () => {
                                                         {/* Source */}
                                                         <div className="glass-effect px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded border sm:rounded-lg border-white/10">
                                                             <p className="text-[10px] sm:text-xs text-white capitalize">
-                                                                {mention.source}
+                                                                {sourceLabels[mention.source] || mention.source}
                                                             </p>
                                                         </div>
 
@@ -646,9 +991,8 @@ const ListaMenciones = () => {
                                                                 onClick={() => setCurrentPage(pageNum)}
                                                                 variant="outline"
                                                                 size="sm"
-                                                                className={`glass-effect border-white/10 hover:bg-white/10 text-white w-7 h-7 sm:w-8 sm:h-8 p-0 text-xs ${
-                                                                    pagination.current_page === pageNum ? 'bg-white/20 border-white/30' : ''
-                                                                }`}
+                                                                className={`glass-effect border-white/10 hover:bg-white/10 text-white w-7 h-7 sm:w-8 sm:h-8 p-0 text-xs ${pagination.current_page === pageNum ? 'bg-white/20 border-white/30' : ''
+                                                                    }`}
                                                             >
                                                                 {pageNum}
                                                             </Button>
