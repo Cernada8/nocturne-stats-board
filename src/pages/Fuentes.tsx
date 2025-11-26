@@ -125,7 +125,6 @@ const Fuentes = () => {
     'facebook': '#6366f1'
   };
 
-  // Función para navegar a lista de menciones con filtro de fuente
   const handleSourceClick = (source: string) => {
     const params = new URLSearchParams();
     params.set('source', source);
@@ -415,7 +414,6 @@ const Fuentes = () => {
         <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-4 sm:space-y-6 lg:space-y-8">
           <Header />
 
-          {/* Title with Back Button */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
             <Button
               onClick={() => navigate('/estadisticas')}
@@ -435,7 +433,6 @@ const Fuentes = () => {
             </div>
           </div>
 
-          {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
             <Popover>
               <PopoverTrigger asChild>
@@ -455,8 +452,7 @@ const Fuentes = () => {
                 <div className="space-y-1 max-h-[300px] overflow-y-auto">
                   <Button
                     variant="ghost"
-                    className={`w-full justify-start text-white hover:bg-white/10 text-sm ${!selectedAlertId ? 'bg-white/10' : ''
-                      }`}
+                    className={`w-full justify-start text-white hover:bg-white/10 text-sm ${!selectedAlertId ? 'bg-white/10' : ''}`}
                     onClick={() => setSelectedAlertId(null)}
                   >
                     Todos los temas
@@ -465,8 +461,7 @@ const Fuentes = () => {
                     <Button
                       key={alert.id}
                       variant="ghost"
-                      className={`w-full justify-start text-white hover:bg-white/10 text-sm ${selectedAlertId === alert.id ? 'bg-white/10' : ''
-                        }`}
+                      className={`w-full justify-start text-white hover:bg-white/10 text-sm ${selectedAlertId === alert.id ? 'bg-white/10' : ''}`}
                       onClick={() => setSelectedAlertId(alert.id)}
                     >
                       <span className="truncate">{alert.name}</span>
@@ -528,7 +523,6 @@ const Fuentes = () => {
             </Popover>
           </div>
 
-          {/* Graph 1: Distribution */}
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-cyan-500/10 blur-3xl rounded-3xl"></div>
 
@@ -559,7 +553,6 @@ const Fuentes = () => {
                 </div>
               ) : distribution.length > 0 ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-                  {/* Radar Chart */}
                   <div className="h-[300px] sm:h-[350px] lg:h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <RadarChart data={radarChartData}>
@@ -615,35 +608,60 @@ const Fuentes = () => {
                     </ResponsiveContainer>
                   </div>
 
-                  {/* Pie Chart */}
                   <div className="h-[300px] sm:h-[350px] lg:h-[400px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={distribution}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          outerRadius="70%"
-                          dataKey="mentions"
-                          label={({ source, percentage }) =>
-                            `${(sourceLabels[source] || source).substring(0, 10)}: ${percentage.toFixed(1)}%`
-                          }
-                          style={{ fontSize: '10px', cursor: 'pointer' }}
-                          className="sm:text-xs"
-                          onClick={(data) => data && handleSourceClick(data.source)}
-                        >
-                          {distribution.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={sourceColors[entry.source] || `hsl(${index * 45}, 70%, 50%)`}
+                    <div className="flex flex-col h-full gap-4">
+                      <div className="flex-1 min-h-0">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={distribution}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              outerRadius="80%"
+                              dataKey="mentions"
+                              onClick={(data) => data && handleSourceClick(data.source)}
                               style={{ cursor: 'pointer' }}
-                            />
+                            >
+                              {distribution.map((entry, index) => (
+                                <Cell
+                                  key={`cell-${index}`}
+                                  fill={sourceColors[entry.source] || `hsl(${index * 45}, 70%, 50%)`}
+                                  style={{ cursor: 'pointer' }}
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip content={<PieTooltip />} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      <div className="glass-effect rounded-xl p-3 border border-white/10">
+                        <h3 className="text-white font-bold mb-2 text-xs">Leyenda</h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                          {distribution.map((entry, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-2 p-1 rounded hover:bg-white/5 transition-colors cursor-pointer group text-xs"
+                              onClick={() => handleSourceClick(entry.source)}
+                            >
+                              <div
+                                className="w-3 h-3 rounded shrink-0 ring-1 ring-white/20"
+                                style={{ backgroundColor: sourceColors[entry.source] || `hsl(${index * 45}, 70%, 50%)` }}
+                              ></div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white text-xs font-semibold truncate">
+                                  {sourceLabels[entry.source] || entry.source}
+                                </p>
+                                <p className="text-white/60 text-xs">
+                                  {entry.percentage.toFixed(1)}%
+                                </p>
+                              </div>
+                            </div>
                           ))}
-                        </Pie>
-                        <Tooltip content={<PieTooltip />} />
-                      </PieChart>
-                    </ResponsiveContainer>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -654,7 +672,6 @@ const Fuentes = () => {
             </div>
           </div>
 
-          {/* Graph 2: Trend Line Chart */}
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-indigo-500/10 blur-3xl rounded-3xl"></div>
 
@@ -757,7 +774,6 @@ const Fuentes = () => {
             </div>
           </div>
 
-          {/* Graph 3: Ranking Bar Chart */}
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 via-pink-500/10 to-purple-500/10 blur-3xl rounded-3xl"></div>
 
@@ -797,8 +813,7 @@ const Fuentes = () => {
                             key={option.value}
                             variant="ghost"
                             size="sm"
-                            className={`w-full justify-start text-white hover:bg-white/10 text-xs sm:text-sm ${rankingOrderBy === option.value ? 'bg-white/10' : ''
-                              }`}
+                            className={`w-full justify-start text-white hover:bg-white/10 text-xs sm:text-sm ${rankingOrderBy === option.value ? 'bg-white/10' : ''}`}
                             onClick={() => setRankingOrderBy(option.value)}
                           >
                             {option.label}
@@ -825,8 +840,7 @@ const Fuentes = () => {
                             key={limit}
                             variant="ghost"
                             size="sm"
-                            className={`w-full justify-start text-white hover:bg-white/10 text-xs sm:text-sm ${rankingLimit === limit ? 'bg-white/10' : ''
-                              }`}
+                            className={`w-full justify-start text-white hover:bg-white/10 text-xs sm:text-sm ${rankingLimit === limit ? 'bg-white/10' : ''}`}
                             onClick={() => setRankingLimit(limit)}
                           >
                             Top {limit}
@@ -893,7 +907,6 @@ const Fuentes = () => {
                     </ResponsiveContainer>
                   </div>
 
-                  {/* Detailed Table */}
                   <div className="glass-effect rounded-xl lg:rounded-2xl overflow-hidden">
                     <div className="overflow-x-auto">
                       <table className="w-full min-w-[500px]">

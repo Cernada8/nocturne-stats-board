@@ -44,7 +44,7 @@ const Estadisticas = () => {
       id: 'fuentes',
       title: 'Fuentes',
       icon: Database,
-      description: 'Distribución por fuentes',
+      description: 'bución por fuentes',
       gradient: 'from-orange-500/20 via-red-500/20 to-orange-500/20',
       glow: 'shadow-orange-500/50'
     },
