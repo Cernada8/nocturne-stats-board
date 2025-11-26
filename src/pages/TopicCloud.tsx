@@ -49,21 +49,11 @@ const TopicCloud = () => {
     const [limit, setLimit] = useState(50);
     const [minCount, setMinCount] = useState(2);
 
-    const limitOptions = [25, 50, 75, 100, 150, 200];
+    const limitOptions = [25, 50, 100];
     const minCountOptions = [1, 2, 3, 5, 10];
 
-    const colorGradients = [
-        { from: '#a855f7', to: '#ec4899' }, // purple to pink
-        { from: '#06b6d4', to: '#3b82f6' }, // cyan to blue
-        { from: '#10b981', to: '#84cc16' }, // green to lime
-        { from: '#f59e0b', to: '#ef4444' }, // amber to red
-        { from: '#8b5cf6', to: '#6366f1' }, // violet to indigo
-        { from: '#14b8a6', to: '#06b6d4' }, // teal to cyan
-        { from: '#f97316', to: '#fb923c' }, // orange to orange-light
-        { from: '#ec4899', to: '#c084fc' }, // pink to purple-light
-        { from: '#22d3ee', to: '#38bdf8' }, // cyan-light to sky
-        { from: '#fbbf24', to: '#f59e0b' }, // yellow to amber
-    ];
+    // Single color scheme with varying opacity
+    const baseColor = { r: 96, g: 165, b: 250 }; // Blue color (rgb(96, 165, 250))
 
     useEffect(() => {
         if (userEmail && !companyId) {
@@ -168,31 +158,100 @@ const TopicCloud = () => {
         const minCountVal = Math.min(...rawTopics.map(t => t.count));
         const countRange = maxCount - minCountVal || 1;
 
-        return rawTopics.map((topic, index) => {
+        // Sort by count descending to place larger items first
+        const sortedTopics = [...rawTopics].sort((a, b) => b.count - a.count);
+        const positions: { x: number; y: number; width: number; height: number }[] = [];
+
+        const checkCollision = (x: number, y: number, width: number, height: number): boolean => {
+            const padding = 1.5; // Reduced padding for denser packing
+            return positions.some(pos => {
+                return !(
+                    x + width + padding < pos.x ||
+                    x > pos.x + pos.width + padding ||
+                    y + height + padding < pos.y ||
+                    y > pos.y + pos.height + padding
+                );
+            });
+        };
+
+        const findPosition = (width: number, height: number): { x: number; y: number } => {
+            const centerX = 50;
+            const centerY = 50;
+            const maxRadius = 48; // Increased from 45 to use more space
+            const angleStep = Math.PI / 16; // More dense spiral (was /8)
+            
+            // Try center first for the largest items
+            if (positions.length < 3) {
+                const x = centerX - width / 2;
+                const y = centerY - height / 2;
+                if (!checkCollision(x, y, width, height)) {
+                    return { x, y };
+                }
+            }
+
+            // Spiral outward from center with smaller steps for denser packing
+            for (let radius = 3; radius < maxRadius; radius += 1.5) { // Smaller radius increment
+                for (let angle = 0; angle < Math.PI * 2; angle += angleStep / (1 + radius / 15)) {
+                    const x = centerX + radius * Math.cos(angle) - width / 2;
+                    const y = centerY + radius * Math.sin(angle) - height / 2;
+                    
+                    if (x >= 1 && x + width <= 99 && y >= 1 && y + height <= 99) { // Use more edge space
+                        if (!checkCollision(x, y, width, height)) {
+                            return { x, y };
+                        }
+                    }
+                }
+            }
+
+            // More aggressive fallback with edge preference
+            for (let attempt = 0; attempt < 100; attempt++) {
+                const x = 2 + Math.random() * (96 - width); // Closer to edges
+                const y = 2 + Math.random() * (96 - height);
+                if (!checkCollision(x, y, width, height)) {
+                    return { x, y };
+                }
+            }
+
+            return { x: 50 - width / 2, y: 50 - height / 2 };
+        };
+
+        return sortedTopics.map((topic) => {
             const normalizedCount = (topic.count - minCountVal) / countRange;
-            const fontSize = 14 + normalizedCount * 52; // 14px to 66px
-            const gradient = colorGradients[index % colorGradients.length];
-            const color = gradient.from; // For fallback
+            
+            // Font size from 18px to 72px for larger text
+            const fontSize = 18 + normalizedCount * 54;
+            
+            // Opacity from 0.5 to 1.0 for more visible colors
+            const opacity = 0.5 + normalizedCount * 0.5;
+            
+            // Color with varying opacity
+            const color = `rgba(${baseColor.r}, ${baseColor.g}, ${baseColor.b}, ${opacity})`;
+            const gradient = { 
+                from: color, 
+                to: color 
+            };
 
-            // Improved spiral distribution with Fibonacci-like pattern
-            const angle = index * 137.508 * (Math.PI / 180); // Golden angle in radians
-            const radius = Math.sqrt(index + 1) * 10;
+            // Estimate word dimensions (rough approximation)
+            const charWidth = fontSize * 0.6;
+            const wordWidth = topic.text.length * charWidth / 10;
+            const wordHeight = fontSize / 10;
 
-            // Add some randomness for more organic feel
-            const randomOffset = (Math.random() - 0.5) * 5;
-            const x = 50 + (radius + randomOffset) * Math.cos(angle);
-            const y = 50 + (radius + randomOffset) * Math.sin(angle);
-
-            const rotation = (Math.random() - 0.5) * 20; // -10 to 10 degrees
+            const position = findPosition(wordWidth, wordHeight);
+            positions.push({ 
+                x: position.x, 
+                y: position.y, 
+                width: wordWidth, 
+                height: wordHeight 
+            });
 
             return {
                 ...topic,
                 fontSize,
                 color,
                 gradient,
-                x: Math.max(8, Math.min(92, x)),
-                y: Math.max(8, Math.min(92, y)),
-                rotation
+                x: position.x + wordWidth / 2,
+                y: position.y + wordHeight / 2,
+                rotation: 0
             };
         });
     };
@@ -403,9 +462,9 @@ const TopicCloud = () => {
                                                     style={{
                                                         left: `${topic.x}%`,
                                                         top: `${topic.y}%`,
-                                                        transform: `translate(-50%, -50%) rotate(${topic.rotation}deg)`,
+                                                        transform: `translate(-50%, -50%)`,
                                                         fontSize: `${Math.max(10, topic.fontSize * 0.7)}px`,
-                                                        animationDelay: `${index * 50}ms`,
+                                                        animationDelay: `${index * 30}ms`,
                                                         animationFillMode: 'backwards'
                                                     }}
                                                     onClick={() => handleTopicClick(topic.text)}
@@ -413,31 +472,18 @@ const TopicCloud = () => {
                                                     <div className="relative">
                                                         {/* Glow effect on hover */}
                                                         <div
-                                                            className="absolute -inset-4 blur-2xl opacity-0 group-hover:opacity-80 transition-all duration-500 rounded-xl"
+                                                            className="absolute -inset-3 blur-xl opacity-0 group-hover:opacity-60 transition-all duration-500 rounded-lg"
                                                             style={{
-                                                                background: `radial-gradient(circle, ${topic.gradient.from}60 0%, ${topic.gradient.to}40 50%, transparent 70%)`
+                                                                background: topic.color
                                                             }}
                                                         ></div>
 
-                                                        {/* Animated ring on hover */}
-                                                        <div
-                                                            className="absolute -inset-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-500 animate-ping"
-                                                            style={{
-                                                                background: `linear-gradient(135deg, ${topic.gradient.from}30, ${topic.gradient.to}30)`,
-                                                                animationIterationCount: '1'
-                                                            }}
-                                                        ></div>
-
-                                                        {/* The word with gradient */}
+                                                        {/* The word */}
                                                         <span
-                                                            className="relative font-extrabold drop-shadow-2xl whitespace-nowrap transition-all duration-500 group-hover:drop-shadow-[0_0_25px_rgba(255,255,255,0.5)] select-none"
+                                                            className="relative font-bold drop-shadow-lg whitespace-nowrap transition-all duration-300 group-hover:drop-shadow-2xl select-none"
                                                             style={{
-                                                                background: `linear-gradient(135deg, ${topic.gradient.from}, ${topic.gradient.to})`,
-                                                                WebkitBackgroundClip: 'text',
-                                                                WebkitTextFillColor: 'transparent',
-                                                                backgroundClip: 'text',
-                                                                filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.5))',
-                                                                textShadow: 'none'
+                                                                color: topic.color,
+                                                                fontWeight: 700
                                                             }}
                                                         >
                                                             {topic.text}
@@ -450,7 +496,7 @@ const TopicCloud = () => {
                                                                 <div
                                                                     className="absolute inset-0 blur-lg rounded-xl"
                                                                     style={{
-                                                                        background: `linear-gradient(135deg, ${topic.gradient.from}40, ${topic.gradient.to}40)`
+                                                                        background: topic.color
                                                                     }}
                                                                 ></div>
 
@@ -460,15 +506,13 @@ const TopicCloud = () => {
                                                                         <div
                                                                             className="w-2 h-2 rounded-full animate-pulse"
                                                                             style={{
-                                                                                background: `linear-gradient(135deg, ${topic.gradient.from}, ${topic.gradient.to})`
+                                                                                background: topic.color
                                                                             }}
                                                                         ></div>
                                                                         <span
                                                                             className="text-xs sm:text-sm font-bold"
                                                                             style={{
-                                                                                background: `linear-gradient(135deg, ${topic.gradient.from}, ${topic.gradient.to})`,
-                                                                                WebkitBackgroundClip: 'text',
-                                                                                WebkitTextFillColor: 'transparent'
+                                                                                color: topic.color
                                                                             }}
                                                                         >
                                                                             {topic.count.toLocaleString()} menciones
@@ -542,16 +586,14 @@ const TopicCloud = () => {
                                                             <div
                                                                 className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm sm:text-lg relative overflow-hidden group-hover:scale-110 transition-transform duration-300"
                                                                 style={{
-                                                                    background: `linear-gradient(135deg, ${topic.gradient.from}40, ${topic.gradient.to}40)`,
-                                                                    boxShadow: `0 0 20px ${topic.gradient.from}30`
+                                                                    background: `${topic.color}40`,
+                                                                    boxShadow: `0 0 20px ${topic.color}30`
                                                                 }}
                                                             >
                                                                 <span
                                                                     className="relative z-10 font-extrabold"
                                                                     style={{
-                                                                        background: `linear-gradient(135deg, ${topic.gradient.from}, ${topic.gradient.to})`,
-                                                                        WebkitBackgroundClip: 'text',
-                                                                        WebkitTextFillColor: 'transparent'
+                                                                        color: topic.color
                                                                     }}
                                                                 >
                                                                     {index + 1}
@@ -559,7 +601,7 @@ const TopicCloud = () => {
                                                                 <div
                                                                     className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                                                                     style={{
-                                                                        background: `linear-gradient(135deg, ${topic.gradient.from}20, ${topic.gradient.to}20)`
+                                                                        background: `${topic.color}20`
                                                                     }}
                                                                 ></div>
                                                             </div>
@@ -569,15 +611,13 @@ const TopicCloud = () => {
                                                                 <div
                                                                     className="w-1 h-6 rounded-full"
                                                                     style={{
-                                                                        background: `linear-gradient(180deg, ${topic.gradient.from}, ${topic.gradient.to})`
+                                                                        background: topic.color
                                                                     }}
                                                                 ></div>
                                                                 <span
                                                                     className="font-extrabold text-sm sm:text-base group-hover:scale-105 transition-transform duration-300 inline-block"
                                                                     style={{
-                                                                        background: `linear-gradient(135deg, ${topic.gradient.from}, ${topic.gradient.to})`,
-                                                                        WebkitBackgroundClip: 'text',
-                                                                        WebkitTextFillColor: 'transparent'
+                                                                        color: topic.color
                                                                     }}
                                                                 >
                                                                     {topic.text}
