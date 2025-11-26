@@ -26,11 +26,16 @@ function Calendar({
   onPredefinedPeriodSelect,
   ...props 
 }: CalendarProps) {
-  // Usar el mes de las props si existe, sino el actual
-  const initialMonth = props.month || (props.selected instanceof Date ? props.selected : new Date());
+  // Extraer onSelect y selected si existen, y el resto de props
+  const onSelect = 'onSelect' in props ? props.onSelect : undefined;
+  const selected = 'selected' in props ? props.selected : undefined;
+  
+  // Crear objeto de props sin onSelect y selected para evitar duplicados
+  const { onSelect: _, selected: __, ...restProps } = props as any;
+  
+  const initialMonth = restProps.month || (selected instanceof Date ? selected : new Date());
   const [month, setMonth] = React.useState<Date>(initialMonth);
   
-  // Genera años desde 1970 hasta el año actual + 10 años hacia el futuro
   const currentYear = new Date().getFullYear();
   const startYear = 1970;
   const endYear = currentYear + 10;
@@ -132,6 +137,23 @@ function Calendar({
     }
   };
 
+  // Handler personalizado para el onSelect
+  const handleDaySelect = (range: any) => {
+    if (!onSelect) return;
+
+    // Si hay un rango ya seleccionado (from y to existen)
+    if (selected && typeof selected === 'object' && 'from' in selected && 'to' in selected && selected.from && selected.to) {
+      // Si range es un objeto con from (nuevo click después de rango completo)
+      if (range && typeof range === 'object' && 'from' in range) {
+        // Resetear la selección y empezar un nuevo rango con el día clickeado
+        (onSelect as any)({ from: range.from, to: undefined });
+      }
+    } else {
+      // Comportamiento normal de react-day-picker para completar el rango
+      (onSelect as any)(range);
+    }
+  };
+
   return (
     <div className="flex flex-col">
       <DayPicker
@@ -139,6 +161,9 @@ function Calendar({
         className={cn("p-3", className)}
         month={month}
         onMonthChange={setMonth}
+        {...restProps}
+        selected={selected}
+        onSelect={handleDaySelect as any}
         classNames={{
           months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
           month: "space-y-4",
@@ -234,7 +259,6 @@ function Calendar({
         {...props}
       />
 
-      {/* Periodos Predefinidos */}
       {showPredefinedPeriods && (
         <div className="border-t border-white/10 pt-3 pb-2 px-3">
           <div className="flex items-center gap-2 mb-2">

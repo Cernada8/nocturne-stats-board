@@ -2,23 +2,34 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
 import AlertCard from '@/components/AlertCard';
-import ArgosAI from './ArgosAI';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiFetch } from '@/lib/api';
 import MathBackground from '@/components/MathBackground';
 import Header from '@/components/Header';
+import { Calendar } from '@/components/ui/calendar';
+import { Button } from '@/components/ui/button';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface StatsData {
   total_mentions: number;
   total_reach: number;
-  unique_authors: number;
-  total_sources: number;
 }
 
 interface Alert {
   id: string;
   name: string;
+}
+
+interface DateRange {
+  from: Date | undefined;
+  to: Date | undefined;
 }
 
 const AnimatedNumber = ({
@@ -62,13 +73,13 @@ const Dashboard = () => {
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [isLoadingAlerts, setIsLoadingAlerts] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
-  // Obtener companyId a partir del email
   useEffect(() => {
     if (userEmail && !companyId) {
       fetchCompanyId();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userEmail, companyId]);
 
   const fetchCompanyId = async () => {
@@ -86,12 +97,10 @@ const Dashboard = () => {
     }
   };
 
-  // Cuando tengamos companyId, traer alerts
   useEffect(() => {
     if (companyId) {
       fetchAlerts();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companyId]);
 
   const fetchAlerts = async () => {
@@ -105,14 +114,12 @@ const Dashboard = () => {
       if (!response.ok) throw new Error('Error al obtener alertas');
 
       const result = await response.json();
-      // Filtramos Leads una sola vez aquí
       const alertsList: Alert[] = (result.data.alerts || []).filter(
         (alert: Alert) => alert.name !== 'Leads'
       );
 
       setAlerts(alertsList);
 
-      // Autoseleccionar primera alerta si no hay ninguna seleccionada
       if (alertsList.length > 0 && !selectedAlertId) {
         setSelectedAlertId(alertsList[0].id);
       }
@@ -130,9 +137,15 @@ const Dashboard = () => {
 
     setIsLoadingStats(true);
     try {
-      const endpoint = alertId
+      let endpoint = alertId
         ? `/api/stats/general/overview?company_id=${companyId}&alert_id=${alertId}`
         : `/api/stats/general/overview?company_id=${companyId}`;
+
+      if (dateRange?.from && dateRange?.to) {
+        const fromStr = format(dateRange.from, 'yyyy-MM-dd');
+        const toStr = format(dateRange.to, 'yyyy-MM-dd');
+        endpoint += `&from=${fromStr}&to=${toStr}`;
+      }
 
       console.log('Llamando a overview:', endpoint);
 
@@ -149,25 +162,38 @@ const Dashboard = () => {
     }
   };
 
-  // Efecto centralizado que decide CUÁNDO llamar al overview
   useEffect(() => {
     if (!companyId) return;
 
     if (selectedAlertId) {
-      // Overview filtrado por alerta
       fetchStats(selectedAlertId);
     } else {
-      // Overview general de la empresa
       fetchStats();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [companyId, selectedAlertId]);
+  }, [companyId, selectedAlertId, dateRange]);
 
   const handleAlertClick = (alertId: string | null) => {
-    // Si clicas la misma alerta, no hacemos nada
     if (!alertId || alertId === selectedAlertId) return;
     setSelectedAlertId(alertId);
-    // NO llamamos aquí a fetchStats; lo hace el useEffect de arriba
+  };
+
+  const handleDateRangeSelect = (range: DateRange | undefined) => {
+    setDateRange(range);
+  };
+
+  const handlePredefinedPeriodSelect = (range: { from: Date; to: Date }) => {
+    setDateRange(range);
+    setIsCalendarOpen(false);
+  };
+
+  const formatDateRange = () => {
+    if (!dateRange?.from) {
+      return 'Seleccionar período';
+    }
+    if (!dateRange?.to) {
+      return format(dateRange.from, 'dd MMM yyyy', { locale: es });
+    }
+    return `${format(dateRange.from, 'dd MMM yyyy', { locale: es })} - ${format(dateRange.to, 'dd MMM yyyy', { locale: es })}`;
   };
 
   return (
@@ -176,21 +202,46 @@ const Dashboard = () => {
       <Sidebar />
 
       <div className="flex-1 w-full px-3 py-4 sm:px-4 sm:py-5 md:px-6 md:py-6 lg:px-8 lg:py-8 relative z-10">
-        <div className="max-w-7xl mx-auto w-full space-y-6 sm:space-y-8 md:space-y-10 lg:space-y-12">
+        <div className="max-w-7xl mx-auto w-full space-y-4 sm:space-y-5 md:space-y-6">
           <Header />
+
+          {/* Date Range Selector */}
+          <div className="flex justify-center">
+            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto justify-start text-left font-normal bg-background/50 backdrop-blur-sm border-white/10 hover:bg-background/70"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {formatDateRange()}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-background/95 backdrop-blur-md border-white/10" align="center">
+                <Calendar
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={handleDateRangeSelect}
+                  numberOfMonths={2}
+                  showPredefinedPeriods={true}
+                  onPredefinedPeriodSelect={handlePredefinedPeriodSelect}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
 
           {/* Stats Cards */}
           {isLoadingStats ? (
-            <div className="flex justify-center items-center py-12 sm:py-16 md:py-20 lg:py-32">
-              <Loader2 className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 animate-spin text-primary" />
+            <div className="flex justify-center items-center py-8 sm:py-12 md:py-16">
+              <Loader2 className="h-8 w-8 sm:h-10 sm:w-10 animate-spin text-primary" />
             </div>
           ) : stats ? (
             <div className="animate-fade-in w-full">
               {/* Mobile: Vertical Stack */}
-              <div className="flex flex-col gap-6 sm:hidden px-2 py-6">
+              <div className="flex flex-col gap-4 sm:hidden px-2 py-4 items-center">
                 {/* Alcance Total */}
                 <div className="text-center space-y-1.5">
-                  <div className="text-4xl xs:text-5xl font-bold text-foreground break-words">
+                  <div className="text-4xl font-bold text-foreground">
                     <AnimatedNumber value={stats.total_reach} duration={2000} />
                   </div>
                   <p className="text-sm font-bold text-foreground">
@@ -198,112 +249,74 @@ const Dashboard = () => {
                   </p>
                 </div>
 
-                {/* Grid 2 columnas */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center space-y-1.5">
-                    <div className="text-2xl xs:text-3xl font-bold text-foreground">
-                      <AnimatedNumber
-                        value={stats.total_mentions}
-                        duration={1800}
-                      />
-                    </div>
-                    <p className="text-xs font-bold text-foreground leading-tight">
-                      Menciones
-                      <br />
-                      Totales
-                    </p>
-                  </div>
-
-                  <div className="text-center space-y-1.5">
-                    <div className="text-2xl xs:text-3xl font-bold text-foreground">
-                      <AnimatedNumber
-                        value={stats.unique_authors}
-                        duration={1800}
-                      />
-                    </div>
-                    <p className="text-xs font-bold text-foreground leading-tight">
-                      Autores
-                      <br />
-                      Únicos
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tablet: 3 columnas */}
-              <div className="hidden sm:flex lg:hidden items-center justify-center gap-6 md:gap-12 py-10 md:py-16 px-4">
-                <div className="text-center space-y-2 flex-shrink-0">
-                  <div className="text-3xl md:text-4xl xl:text-5xl font-bold text-foreground">
+                {/* Menciones Totales */}
+                <div className="text-center space-y-1.5">
+                  <div className="text-3xl font-bold text-foreground">
                     <AnimatedNumber
                       value={stats.total_mentions}
                       duration={1800}
                     />
                   </div>
-                  <p className="text-xs md:text-sm font-bold text-foreground whitespace-nowrap">
+                  <p className="text-xs font-bold text-foreground">
                     Menciones Totales
                   </p>
                 </div>
+              </div>
 
-                <div className="text-center space-y-2 flex-shrink-0">
-                  <div className="text-5xl md:text-6xl xl:text-7xl font-bold text-foreground">
+              {/* Tablet: Vertical Stack Centered */}
+              <div className="hidden sm:flex lg:hidden flex-col items-center justify-center gap-6 py-6 md:py-8 px-4">
+                {/* Alcance Total */}
+                <div className="text-center space-y-2">
+                  <div className="text-6xl md:text-7xl font-bold text-foreground">
                     <AnimatedNumber
                       value={stats.total_reach}
                       duration={2000}
                     />
                   </div>
-                  <p className="text-base md:text-lg font-bold text-foreground whitespace-nowrap">
+                  <p className="text-base md:text-lg font-bold text-foreground">
                     Alcance Total
                   </p>
                 </div>
 
-                <div className="text-center space-y-2 flex-shrink-0">
-                  <div className="text-3xl md:text-4xl xl:text-5xl font-bold text-foreground">
-                    <AnimatedNumber
-                      value={stats.unique_authors}
-                      duration={1800}
-                    />
-                  </div>
-                  <p className="text-xs md:text-sm font-bold text-foreground whitespace-nowrap">
-                    Autores Únicos
-                  </p>
-                </div>
-              </div>
-
-              {/* Desktop */}
-              <div className="hidden lg:flex items-center justify-center gap-16 xl:gap-32 py-16 xl:py-24">
-                <div className="text-center space-y-3 min-w-[200px] xl:min-w-[250px]">
-                  <div className="text-5xl xl:text-6xl font-bold text-foreground min-h-[60px] xl:min-h-[72px] flex items-center justify-center">
+                {/* Menciones Totales */}
+                <div className="text-center space-y-2">
+                  <div className="text-4xl md:text-5xl font-bold text-foreground">
                     <AnimatedNumber
                       value={stats.total_mentions}
                       duration={1800}
                     />
                   </div>
-                  <p className="text-sm xl:text-base font-bold text-foreground">
+                  <p className="text-sm md:text-base font-bold text-foreground">
                     Menciones Totales
                   </p>
                 </div>
+              </div>
 
-                <div className="text-center space-y-3 min-w-[300px] xl:min-w-[400px]">
-                  <div className="text-7xl xl:text-9xl font-bold text-foreground min-h-[84px] xl:min-h-[108px] flex items-center justify-center">
+              {/* Desktop: Vertical Stack Centered */}
+              <div className="hidden lg:flex flex-col items-center justify-center gap-6 xl:gap-8 py-6 xl:py-8">
+                {/* Alcance Total */}
+                <div className="text-center space-y-2">
+                  <div className="text-7xl xl:text-8xl font-bold text-foreground leading-none">
                     <AnimatedNumber
                       value={stats.total_reach}
                       duration={2000}
                     />
                   </div>
-                  <p className="text-xl xl:text-2xl font-bold text-foreground">
+                  <p className="text-lg xl:text-xl font-bold text-foreground">
                     Alcance Total
                   </p>
                 </div>
 
-                <div className="text-center space-y-3 min-w-[200px] xl:min-w-[250px]">
-                  <div className="text-5xl xl:text-6xl font-bold text-foreground min-h-[60px] xl:min-h-[72px] flex items-center justify-center">
+                {/* Menciones Totales */}
+                <div className="text-center space-y-2">
+                  <div className="text-5xl xl:text-6xl font-bold text-foreground leading-none">
                     <AnimatedNumber
-                      value={stats.unique_authors}
+                      value={stats.total_mentions}
                       duration={1800}
                     />
                   </div>
-                  <p className="text-sm xl:text-base font-bold text-foreground">
-                    Autores Únicos
+                  <p className="text-base xl:text-lg font-bold text-foreground">
+                    Menciones Totales
                   </p>
                 </div>
               </div>
