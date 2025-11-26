@@ -61,8 +61,8 @@ const Alertas = () => {
         name: '',
         metric_type: 'mention_count',
         condition: 'greater_than',
-        threshold: 10,
-        threshold_secondary: null as number | null,
+        threshold: 10 as number | string,
+        threshold_secondary: null as number | string | null,
         time_period: 'day',
         notification_emails: '',
         filters: {} as Record<string, any>,
@@ -165,6 +165,12 @@ const Alertas = () => {
         try {
             const payload = {
                 ...formData,
+                threshold: typeof formData.threshold === 'string' 
+                    ? (formData.threshold === '' ? 0 : parseInt(formData.threshold)) 
+                    : formData.threshold,
+                threshold_secondary: typeof formData.threshold_secondary === 'string'
+                    ? (formData.threshold_secondary === '' ? null : parseInt(formData.threshold_secondary))
+                    : formData.threshold_secondary,
                 company_id: parseInt(companyId || '0')
             };
 
@@ -347,7 +353,23 @@ const Alertas = () => {
                                             <Input
                                                 type="number"
                                                 value={formData.threshold}
-                                                onChange={(e) => setFormData({...formData, threshold: parseInt(e.target.value) || 0})}
+                                                onFocus={(e) => {
+                                                    if (formData.threshold === 0 || formData.threshold === '0') {
+                                                        setFormData({...formData, threshold: ''});
+                                                    }
+                                                }}
+                                                onChange={(e) => {
+                                                    const value = e.target.value;
+                                                    setFormData({
+                                                        ...formData, 
+                                                        threshold: value === '' ? '' : parseInt(value)
+                                                    });
+                                                }}
+                                                onBlur={(e) => {
+                                                    if (e.target.value === '') {
+                                                        setFormData({...formData, threshold: 0});
+                                                    }
+                                                }}
                                                 className="glass-card border-white/10 text-white"
                                             />
                                         </div>
@@ -358,8 +380,24 @@ const Alertas = () => {
                                             <Label className="text-white">Valor máximo</Label>
                                             <Input
                                                 type="number"
-                                                value={formData.threshold_secondary || ''}
-                                                onChange={(e) => setFormData({...formData, threshold_secondary: parseInt(e.target.value) || null})}
+                                                value={formData.threshold_secondary === null ? '' : formData.threshold_secondary}
+                                                onFocus={(e) => {
+                                                    if (formData.threshold_secondary === 0 || formData.threshold_secondary === '0') {
+                                                        setFormData({...formData, threshold_secondary: ''});
+                                                    }
+                                                }}
+                                                onChange={(e) => {
+                                                    const value = e.target.value;
+                                                    setFormData({
+                                                        ...formData, 
+                                                        threshold_secondary: value === '' ? '' : parseInt(value)
+                                                    });
+                                                }}
+                                                onBlur={(e) => {
+                                                    if (e.target.value === '') {
+                                                        setFormData({...formData, threshold_secondary: null});
+                                                    }
+                                                }}
                                                 className="glass-card border-white/10 text-white"
                                             />
                                         </div>
