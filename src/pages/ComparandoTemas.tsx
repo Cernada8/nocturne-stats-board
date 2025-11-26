@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
@@ -66,6 +66,12 @@ const ComparandoTemas = () => {
     to: new Date()
   });
 
+  const hadCompleteRange = useRef(false);
+
+  useEffect(() => {
+    hadCompleteRange.current = !!(dateRange.from && dateRange.to);
+  }, [dateRange]);
+
   useEffect(() => {
     if (!blueAlertId || !redAlertId || !companyId) {
       toast.error('Faltan parámetros para comparar');
@@ -111,7 +117,6 @@ const ComparandoTemas = () => {
       const fromStr = format(dateRange.from, 'yyyy-MM-dd');
       const toStr = format(dateRange.to, 'yyyy-MM-dd');
       
-      // Fetch reach data
       const [blueResponse, redResponse, blueSentimentResponse, redSentimentResponse] = await Promise.all([
         apiFetch(`/api/stats/reach/summary?company_id=${companyId}&alert_id=${blueAlertId}&from=${fromStr}&to=${toStr}`),
         apiFetch(`/api/stats/reach/summary?company_id=${companyId}&alert_id=${redAlertId}&from=${fromStr}&to=${toStr}`),
@@ -140,6 +145,31 @@ const ComparandoTemas = () => {
     }
   };
 
+  const handleDateRangeSelect = (range: { from: Date | undefined; to: Date | undefined } | undefined) => {
+    if (hadCompleteRange.current && range) {
+      let clickedDate: Date | undefined;
+      const prevFrom = dateRange.from?.getTime();
+      const prevTo = dateRange.to?.getTime();
+      const newFrom = range.from?.getTime();
+      const newTo = range.to?.getTime();
+      
+      if (newTo && newTo !== prevTo && newTo !== prevFrom) {
+        clickedDate = range.to;
+      } else if (newFrom && newFrom !== prevFrom && newFrom !== prevTo) {
+        clickedDate = range.from;
+      } else if (newFrom && !newTo) {
+        clickedDate = range.from;
+      } else {
+        clickedDate = range.to || range.from;
+      }
+      
+      hadCompleteRange.current = false;
+      setDateRange({ from: clickedDate, to: undefined });
+      return;
+    }
+    setDateRange({ from: range?.from, to: range?.to });
+  };
+
   const getWinner = (blueValue: number, redValue: number): 'blue' | 'red' | 'tie' => {
     if (blueValue > redValue) return 'blue';
     if (redValue > blueValue) return 'red';
@@ -163,7 +193,6 @@ const ComparandoTemas = () => {
   }) => {
     let winner = getWinner(blueValue, redValue);
     
-    // Invertir el ganador para métricas donde menor es mejor (ej: menciones negativas)
     if (invertWinner && winner !== 'tie') {
       winner = winner === 'blue' ? 'red' : 'blue';
     }
@@ -177,7 +206,6 @@ const ComparandoTemas = () => {
 
     return (
       <div className="relative">
-        {/* Title */}
         <div className="text-center mb-4 sm:mb-6">
           <div className="flex items-center justify-center gap-2 mb-2">
             <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
@@ -185,9 +213,7 @@ const ComparandoTemas = () => {
           </div>
         </div>
 
-        {/* VS Comparison */}
         <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 items-center">
-          {/* Blue Side */}
           <div className={`text-center p-3 sm:p-4 md:p-6 rounded-xl sm:rounded-2xl border-2 sm:border-4 transition-all duration-500 ${
             winner === 'blue' 
               ? 'border-blue-400 bg-gradient-to-br from-blue-500/30 to-blue-900/20 shadow-[0_0_30px_rgba(59,130,246,0.6)] scale-105' 
@@ -201,14 +227,12 @@ const ComparandoTemas = () => {
             </div>
           </div>
 
-          {/* VS Center */}
           <div className="flex justify-center">
             <div className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-red-400">
               VS
             </div>
           </div>
 
-          {/* Red Side */}
           <div className={`text-center p-3 sm:p-4 md:p-6 rounded-xl sm:rounded-2xl border-2 sm:border-4 transition-all duration-500 ${
             winner === 'red' 
               ? 'border-red-400 bg-gradient-to-br from-red-500/30 to-red-900/20 shadow-[0_0_30px_rgba(239,68,68,0.6)] scale-105' 
@@ -223,7 +247,6 @@ const ComparandoTemas = () => {
           </div>
         </div>
 
-        {/* Percentage Difference */}
         {winner !== 'tie' && (
           <div className="text-center mt-3 sm:mt-4">
             <div className="text-xs sm:text-sm text-foreground/60">
@@ -244,7 +267,6 @@ const ComparandoTemas = () => {
         <div className="max-w-7xl mx-auto w-full space-y-4 sm:space-y-6">
           <Header />
 
-          {/* Back Button */}
           <div className="flex items-center justify-between">
             <button
               onClick={() => navigate('/comparador')}
@@ -255,9 +277,7 @@ const ComparandoTemas = () => {
             </button>
           </div>
 
-          {/* Fighters Header */}
           <div className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6 items-center mb-6 sm:mb-8">
-            {/* Blue Fighter */}
             <div className="text-center space-y-1 sm:space-y-2">
               <div className="text-2xl sm:text-3xl md:text-4xl"></div>
               <div className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-blue-400 break-words px-1 sm:px-2">
@@ -265,14 +285,12 @@ const ComparandoTemas = () => {
               </div>
             </div>
 
-            {/* VS */}
             <div className="flex justify-center">
               <div className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-yellow-500 to-blue-500 animate-pulse">
                 VS
               </div>
             </div>
 
-            {/* Red Fighter */}
             <div className="text-center space-y-1 sm:space-y-2">
               <div className="text-2xl sm:text-3xl md:text-4xl"></div>
               <div className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-red-400 break-words px-1 sm:px-2">
@@ -281,7 +299,6 @@ const ComparandoTemas = () => {
             </div>
           </div>
 
-          {/* Date Filter */}
           <div className="flex justify-center px-2">
             <Popover>
               <PopoverTrigger asChild>
@@ -307,42 +324,40 @@ const ComparandoTemas = () => {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 glass-card border-white/10" align="center">
-<Calendar
-  mode="range"
-  selected={{ from: dateRange.from, to: dateRange.to }}
-  onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
-  numberOfMonths={1}
-  locale={es}
-  fromYear={1960}
-  toYear={2030}
-  className="sm:hidden"
-  showPredefinedPeriods={true}
-  onPredefinedPeriodSelect={(range) => setDateRange(range)}
-/>
-<Calendar
-  mode="range"
-  selected={{ from: dateRange.from, to: dateRange.to }}
-  onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
-  numberOfMonths={2}
-  locale={es}
-  fromYear={1960}
-  toYear={2030}
-  className="hidden sm:block"
-  showPredefinedPeriods={true}
-  onPredefinedPeriodSelect={(range) => setDateRange(range)}
-/>
+                <Calendar
+                  mode="range"
+                  selected={{ from: dateRange.from, to: dateRange.to }}
+                  onSelect={handleDateRangeSelect}
+                  numberOfMonths={1}
+                  locale={es}
+                  fromYear={1960}
+                  toYear={2030}
+                  className="sm:hidden"
+                  showPredefinedPeriods={true}
+                  onPredefinedPeriodSelect={(range) => setDateRange(range)}
+                />
+                <Calendar
+                  mode="range"
+                  selected={{ from: dateRange.from, to: dateRange.to }}
+                  onSelect={handleDateRangeSelect}
+                  numberOfMonths={2}
+                  locale={es}
+                  fromYear={1960}
+                  toYear={2030}
+                  className="hidden sm:block"
+                  showPredefinedPeriods={true}
+                  onPredefinedPeriodSelect={(range) => setDateRange(range)}
+                />
               </PopoverContent>
             </Popover>
           </div>
 
-          {/* Loading State */}
           {isLoading ? (
             <div className="flex justify-center items-center py-12 sm:py-16 md:py-20">
               <Loader2 className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 animate-spin text-primary" />
             </div>
           ) : blueData && redData && blueSentiment && redSentiment ? (
             <div className="space-y-6 sm:space-y-8">
-              {/* Alcance Section */}
               <div className="space-y-4 sm:space-y-6">
                 <div className="text-center">
                   <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600 inline-flex items-center gap-2">
@@ -374,7 +389,6 @@ const ComparandoTemas = () => {
                 />
               </div>
 
-              {/* Divider */}
               <div className="relative py-8">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t-2 border-gradient-to-r from-transparent via-foreground/20 to-transparent"></div>
@@ -384,7 +398,6 @@ const ComparandoTemas = () => {
                 </div>
               </div>
 
-              {/* Sentimiento Section */}
               <div className="space-y-4 sm:space-y-6">
                 <div className="text-center">
                   <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-600 inline-flex items-center gap-2">

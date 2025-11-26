@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -35,6 +35,9 @@ const RankingPaises = () => {
   });
   const [limit, setLimit] = useState<number>(10);
   const navigate = useNavigate();
+  const hadCompleteRange = useRef(false);
+
+
 
   const limitOptions = [5, 10, 20, 50, 100];
 
@@ -84,6 +87,10 @@ const RankingPaises = () => {
       .map(char => 127397 + char.charCodeAt(0));
     return String.fromCodePoint(...codePoints);
   };
+    useEffect(() => {
+    hadCompleteRange.current = !!(dateRange.from && dateRange.to);
+  }, [dateRange]);
+
 
   useEffect(() => {
     if (userEmail && !companyId) {
@@ -141,6 +148,30 @@ const RankingPaises = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+  const handleDateRangeSelect = (range: { from: Date | undefined; to: Date | undefined } | undefined) => {
+    if (hadCompleteRange.current && range) {
+      let clickedDate: Date | undefined;
+      const prevFrom = dateRange.from?.getTime();
+      const prevTo = dateRange.to?.getTime();
+      const newFrom = range.from?.getTime();
+      const newTo = range.to?.getTime();
+      
+      if (newTo && newTo !== prevTo && newTo !== prevFrom) {
+        clickedDate = range.to;
+      } else if (newFrom && newFrom !== prevFrom && newFrom !== prevTo) {
+        clickedDate = range.from;
+      } else if (newFrom && !newTo) {
+        clickedDate = range.from;
+      } else {
+        clickedDate = range.to || range.from;
+      }
+      
+      hadCompleteRange.current = false;
+      setDateRange({ from: clickedDate, to: undefined });
+      return;
+    }
+    setDateRange({ from: range?.from, to: range?.to });
   };
 
   return (
@@ -202,7 +233,7 @@ const RankingPaises = () => {
                 <Calendar
                   mode="range"
                   selected={{ from: dateRange.from, to: dateRange.to }}
-                  onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
+onSelect={handleDateRangeSelect}
                   numberOfMonths={1}
                   locale={es}
                   fromYear={1960}
@@ -212,7 +243,7 @@ const RankingPaises = () => {
                 <Calendar
                   mode="range"
                   selected={{ from: dateRange.from, to: dateRange.to }}
-                  onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
+onSelect={handleDateRangeSelect}
                   numberOfMonths={2}
                   locale={es}
                   fromYear={1960}

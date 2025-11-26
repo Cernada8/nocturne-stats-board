@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -85,6 +85,10 @@ const ListaMenciones = () => {
         to: new Date()
     });
     const [currentPage, setCurrentPage] = useState(1);
+    const hadCompleteRange = useRef(false);
+
+
+    
 
     const sourceOptions = [
         { value: 'facebook', label: 'Facebook', icon: MessageSquare },
@@ -143,6 +147,10 @@ const ListaMenciones = () => {
         { value: 'GB', label: 'Reino Unido' },
         { value: 'BR', label: 'Brasil' }
     ];
+
+    useEffect(() => {
+    hadCompleteRange.current = !!(dateRange.from && dateRange.to);
+}, [dateRange]);
 
     // Aplicar filtros de URL al cargar
     useEffect(() => {
@@ -349,6 +357,33 @@ const ListaMenciones = () => {
     const hasActiveFilters = selectedAlertId || selectedSource || selectedSentiment || selectedLanguage || selectedCountry || searchTerm || authorFilter ||
         (dateRange.from && dateRange.from.getTime() !== new Date(1969, 0, 1).getTime()) ||
         (dateRange.to && dateRange.to.getTime() !== new Date().setHours(0, 0, 0, 0));
+
+        const handleDateRangeSelect = (range: { from: Date | undefined; to: Date | undefined } | undefined) => {
+    if (hadCompleteRange.current && range) {
+        let clickedDate: Date | undefined;
+        const prevFrom = dateRange.from?.getTime();
+        const prevTo = dateRange.to?.getTime();
+        const newFrom = range.from?.getTime();
+        const newTo = range.to?.getTime();
+        
+        if (newTo && newTo !== prevTo && newTo !== prevFrom) {
+            clickedDate = range.to;
+        } else if (newFrom && newFrom !== prevFrom && newFrom !== prevTo) {
+            clickedDate = range.from;
+        } else if (newFrom && !newTo) {
+            clickedDate = range.from;
+        } else {
+            clickedDate = range.to || range.from;
+        }
+        
+        hadCompleteRange.current = false;
+        setDateRange({ from: clickedDate, to: undefined });
+        setCurrentPage(1);
+        return;
+    }
+    setDateRange({ from: range?.from, to: range?.to });
+    setCurrentPage(1);
+};
 
     return (
         <div className="min-h-screen max-h-screen overflow-hidden flex flex-col lg:flex-row">
@@ -799,8 +834,7 @@ const ListaMenciones = () => {
                                     <Calendar
                                         mode="range"
                                         selected={{ from: dateRange.from, to: dateRange.to }}
-                                        onSelect={(range) => { setDateRange({ from: range?.from, to: range?.to }); setCurrentPage(1); }}
-                                        numberOfMonths={1}
+onSelect={handleDateRangeSelect}                                        numberOfMonths={1}
                                         locale={es}
                                         fromYear={1960}
                                         toYear={2030}
@@ -811,8 +845,7 @@ const ListaMenciones = () => {
                                     <Calendar
                                         mode="range"
                                         selected={{ from: dateRange.from, to: dateRange.to }}
-                                        onSelect={(range) => { setDateRange({ from: range?.from, to: range?.to }); setCurrentPage(1); }}
-                                        numberOfMonths={2}
+onSelect={handleDateRangeSelect}                                        numberOfMonths={2}
                                         locale={es}
                                         fromYear={1960}
                                         toYear={2030}

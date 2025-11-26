@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import * as React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
 import AlertCard from '@/components/AlertCard';
@@ -75,6 +76,14 @@ const Dashboard = () => {
   const [isLoadingAlerts, setIsLoadingAlerts] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  
+  // Ref para trackear si ya tenemos rango completo (from Y to)
+  const hadCompleteRange = React.useRef(false);
+
+  // Actualizar el ref cuando cambia dateRange
+  useEffect(() => {
+    hadCompleteRange.current = !!(dateRange?.from && dateRange?.to);
+  }, [dateRange]);
 
   useEffect(() => {
     if (userEmail && !companyId) {
@@ -178,6 +187,40 @@ const Dashboard = () => {
   };
 
   const handleDateRangeSelect = (range: DateRange | undefined) => {
+    // Si ya teníamos un rango completo (from Y to), cualquier click nuevo debe resetear
+    if (hadCompleteRange.current && range) {
+      // Encontrar qué fecha es la "nueva" (la que el usuario acaba de clickear)
+      let clickedDate: Date | undefined;
+      
+      // Comparar con el rango anterior para encontrar la fecha nueva
+      const prevFrom = dateRange?.from?.getTime();
+      const prevTo = dateRange?.to?.getTime();
+      const newFrom = range.from?.getTime();
+      const newTo = range.to?.getTime();
+      
+      if (newTo && newTo !== prevTo && newTo !== prevFrom) {
+        // El "to" es nuevo -> usuario clickeó fecha posterior
+        clickedDate = range.to;
+      } else if (newFrom && newFrom !== prevFrom && newFrom !== prevTo) {
+        // El "from" es nuevo -> usuario clickeó fecha anterior
+        clickedDate = range.from;
+      } else if (newFrom && !newTo) {
+        // Solo hay from, sin to -> usar from
+        clickedDate = range.from;
+      } else {
+        // Fallback: usar from o to, lo que exista
+        clickedDate = range.to || range.from;
+      }
+      
+      // Resetear el ref ANTES de actualizar el estado
+      hadCompleteRange.current = false;
+      
+      // Resetear: fecha clickeada como nuevo "from", sin "to"
+      setDateRange({ from: clickedDate, to: undefined });
+      return;
+    }
+    
+    // Comportamiento normal: no teníamos rango completo, usar lo que DayPicker devuelve
     setDateRange(range);
   };
 

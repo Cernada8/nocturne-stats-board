@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -57,6 +57,7 @@ const Alcance = () => {
     from: new Date(2025, 0, 1),
     to: new Date()
   });
+  const hadCompleteRange = useRef(false);
   const [interval, setInterval] = useState<'day' | 'week' | 'month' | 'year'>('month');
   const [driverLimit, setDriverLimit] = useState(10);
   const [driverWeight, setDriverWeight] = useState<'reach' | 'mentions'>('reach');
@@ -74,6 +75,11 @@ const Alcance = () => {
   ];
 
   const limitOptions = [5, 10, 15, 20, 30, 50];
+
+  // Actualizar el ref cuando cambia dateRange
+  useEffect(() => {
+    hadCompleteRange.current = !!(dateRange.from && dateRange.to);
+  }, [dateRange]);
 
   useEffect(() => {
     if (userEmail && !companyId) {
@@ -183,6 +189,31 @@ const Alcance = () => {
     }
   };
 
+  const handleDateRangeSelect = (range: { from: Date | undefined; to: Date | undefined } | undefined) => {
+    if (hadCompleteRange.current && range) {
+      let clickedDate: Date | undefined;
+      const prevFrom = dateRange.from?.getTime();
+      const prevTo = dateRange.to?.getTime();
+      const newFrom = range.from?.getTime();
+      const newTo = range.to?.getTime();
+      
+      if (newTo && newTo !== prevTo && newTo !== prevFrom) {
+        clickedDate = range.to;
+      } else if (newFrom && newFrom !== prevFrom && newFrom !== prevTo) {
+        clickedDate = range.from;
+      } else if (newFrom && !newTo) {
+        clickedDate = range.from;
+      } else {
+        clickedDate = range.to || range.from;
+      }
+      
+      hadCompleteRange.current = false;
+      setDateRange({ from: clickedDate, to: undefined });
+      return;
+    }
+    setDateRange({ from: range?.from, to: range?.to });
+  };
+
 const exportToPDF = async () => {
     setIsExporting(true);
     try {
@@ -191,17 +222,14 @@ const exportToPDF = async () => {
       const pageHeight = doc.internal.pageSize.getHeight();
       let yPosition = 20;
 
-      // Header con gradiente simulado
       doc.setFillColor(8, 47, 73);
       doc.rect(0, 0, pageWidth, 40, 'F');
       
-      // Título principal
       doc.setTextColor(34, 211, 238);
       doc.setFontSize(24);
       doc.setFont('helvetica', 'bold');
       doc.text('Análisis de Alcance', pageWidth / 2, 20, { align: 'center' });
       
-      // Subtítulo
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
@@ -209,7 +237,6 @@ const exportToPDF = async () => {
 
       yPosition = 50;
 
-      // Información del reporte
       doc.setTextColor(100, 116, 139);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
@@ -228,7 +255,6 @@ const exportToPDF = async () => {
 
       yPosition += 40;
 
-      // Sección 1: Evolución del Alcance
       doc.setFillColor(34, 211, 238);
       doc.rect(20, yPosition - 5, pageWidth - 40, 0.5, 'F');
       
@@ -273,13 +299,11 @@ const exportToPDF = async () => {
         yPosition = (doc as any).lastAutoTable.finalY + 15;
       }
 
-      // Verificar si necesitamos nueva página
       if (yPosition > pageHeight - 80) {
         doc.addPage();
         yPosition = 20;
       }
 
-      // Sección 2: Top Autores
       doc.setFillColor(59, 130, 246);
       doc.rect(20, yPosition - 5, pageWidth - 40, 0.5, 'F');
       
@@ -330,13 +354,11 @@ const exportToPDF = async () => {
         yPosition = (doc as any).lastAutoTable.finalY + 15;
       }
 
-      // Verificar si necesitamos nueva página
       if (yPosition > pageHeight - 80) {
         doc.addPage();
         yPosition = 20;
       }
 
-      // Sección 3: Top Keywords
       doc.setFillColor(139, 92, 246);
       doc.rect(20, yPosition - 5, pageWidth - 40, 0.5, 'F');
       
@@ -385,7 +407,6 @@ const exportToPDF = async () => {
         });
       }
 
-      // Footer en todas las páginas
       const totalPages = doc.getNumberOfPages();
       for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
@@ -406,7 +427,6 @@ const exportToPDF = async () => {
         );
       }
 
-      // Guardar PDF
       const fileName = `Analisis_Alcance_${format(new Date(), 'yyyy-MM-dd_HHmm')}.pdf`;
       doc.save(fileName);
       
@@ -483,7 +503,6 @@ const exportToPDF = async () => {
         <div className="p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl mx-auto space-y-4 sm:space-y-6 lg:space-y-8">
           <Header />
 
-          {/* Title with Back Button and Export - Responsive */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
             <div className="flex items-center gap-3 sm:gap-4">
               <Button
@@ -504,7 +523,6 @@ const exportToPDF = async () => {
               </div>
             </div>
 
-            {/* Export PDF Button */}
             <Button
               onClick={exportToPDF}
               disabled={isExporting || isLoading || isLoadingDrivers || reachData.length === 0}
@@ -524,7 +542,6 @@ const exportToPDF = async () => {
             </Button>
           </div>
 
-          {/* Filters - Responsive */}
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
             <Popover>
               <PopoverTrigger asChild>
@@ -594,7 +611,7 @@ const exportToPDF = async () => {
                 <Calendar
                   mode="range"
                   selected={{ from: dateRange.from, to: dateRange.to }}
-                  onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
+                  onSelect={handleDateRangeSelect}
                   numberOfMonths={typeof window !== 'undefined' && window.innerWidth < 768 ? 1 : 2}
                   locale={es}
                   fromYear={1960}
@@ -606,7 +623,6 @@ const exportToPDF = async () => {
             </Popover>
           </div>
 
-          {/* Evolution Chart - Responsive */}
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-transparent to-cyan-500/10 blur-3xl rounded-2xl"></div>
             
@@ -626,7 +642,6 @@ const exportToPDF = async () => {
                   </div>
                 </div>
 
-                {/* Interval Selector - Responsive */}
                 <div className="flex gap-1 sm:gap-2 w-full sm:w-auto">
                   {intervals.map((int) => (
                     <Button
@@ -704,9 +719,7 @@ const exportToPDF = async () => {
             </div>
           </div>
 
-          {/* Drivers Grid - Responsive */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {/* Top Authors */}
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-transparent to-purple-500/10 blur-3xl rounded-2xl"></div>
               
@@ -830,7 +843,6 @@ const exportToPDF = async () => {
               </div>
             </div>
 
-            {/* Top Keywords */}
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-transparent to-pink-500/10 blur-3xl rounded-2xl"></div>
               

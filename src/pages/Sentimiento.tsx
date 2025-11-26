@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -57,6 +57,7 @@ interface ScoreData {
 const Sentimiento = () => {
   const { userEmail, companyId, setCompanyId } = useAuth();
   const navigate = useNavigate();
+  const hadCompleteRange = useRef(false);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
@@ -91,6 +92,10 @@ const Sentimiento = () => {
     { value: 'month' as const, label: 'Mensual', shortLabel: 'M' },
     { value: 'year' as const, label: 'Anual', shortLabel: 'A' }
   ];
+
+    useEffect(() => {
+    hadCompleteRange.current = !!(dateRange.from && dateRange.to);
+  }, [dateRange]);
 
   useEffect(() => {
     if (userEmail && !companyId) {
@@ -549,6 +554,31 @@ const Sentimiento = () => {
     return null;
   };
 
+    const handleDateRangeSelect = (range: { from: Date | undefined; to: Date | undefined } | undefined) => {
+    if (hadCompleteRange.current && range) {
+      let clickedDate: Date | undefined;
+      const prevFrom = dateRange.from?.getTime();
+      const prevTo = dateRange.to?.getTime();
+      const newFrom = range.from?.getTime();
+      const newTo = range.to?.getTime();
+      
+      if (newTo && newTo !== prevTo && newTo !== prevFrom) {
+        clickedDate = range.to;
+      } else if (newFrom && newFrom !== prevFrom && newFrom !== prevTo) {
+        clickedDate = range.from;
+      } else if (newFrom && !newTo) {
+        clickedDate = range.from;
+      } else {
+        clickedDate = range.to || range.from;
+      }
+      
+      hadCompleteRange.current = false;
+      setDateRange({ from: clickedDate, to: undefined });
+      return;
+    }
+    setDateRange({ from: range?.from, to: range?.to });
+  };
+
   return (
     <div className="min-h-screen max-h-screen overflow-hidden flex">
       <SoftMathBackground />
@@ -648,7 +678,7 @@ const Sentimiento = () => {
                 <Calendar
                   mode="range"
                   selected={{ from: dateRange.from, to: dateRange.to }}
-                  onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
+onSelect={handleDateRangeSelect}
                   numberOfMonths={typeof window !== 'undefined' && window.innerWidth < 768 ? 1 : 2}
                   locale={es}
                   fromYear={1960}
@@ -686,7 +716,7 @@ const Sentimiento = () => {
                   <Calendar
                     mode="range"
                     selected={{ from: period1.from, to: period1.to }}
-                    onSelect={(range) => setPeriod1({ from: range?.from, to: range?.to })}
+onSelect={handleDateRangeSelect}
                     numberOfMonths={1}
                     locale={es}
                     fromYear={1960}
@@ -706,7 +736,7 @@ const Sentimiento = () => {
                   <Calendar
                     mode="range"
                     selected={{ from: period2.from, to: period2.to }}
-                    onSelect={(range) => setPeriod2({ from: range?.from, to: range?.to })}
+onSelect={handleDateRangeSelect}
                     numberOfMonths={1}
                     locale={es}
                     fromYear={1960}

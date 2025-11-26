@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -52,6 +52,7 @@ const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json";
 const MapaCalor = () => {
   const { userEmail, companyId, setCompanyId } = useAuth();
   const navigate = useNavigate();
+  const hadCompleteRange = useRef(false);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
@@ -67,6 +68,35 @@ const MapaCalor = () => {
     coordinates: [0, 20],
     zoom: 1
   });
+
+  const handleDateRangeSelect = (range: { from: Date | undefined; to: Date | undefined } | undefined) => {
+                        if (hadCompleteRange.current && range) {
+                          let clickedDate: Date | undefined;
+                          const prevFrom = dateRange.from?.getTime();
+                          const prevTo = dateRange.to?.getTime();
+                          const newFrom = range.from?.getTime();
+                          const newTo = range.to?.getTime();
+
+                          if (newTo && newTo !== prevTo && newTo !== prevFrom) {
+                            clickedDate = range.to;
+                          } else if (newFrom && newFrom !== prevFrom && newFrom !== prevTo) {
+                            clickedDate = range.from;
+                          } else if (newFrom && !newTo) {
+                            clickedDate = range.from;
+                          } else {
+                            clickedDate = range.to || range.from;
+                          }
+
+                          hadCompleteRange.current = false;
+                          setDateRange({ from: clickedDate, to: undefined });
+                          return;
+                        }
+                        setDateRange({ from: range?.from, to: range?.to });
+                      };
+
+  useEffect(() => {
+    hadCompleteRange.current = !!(dateRange.from && dateRange.to);
+  }, [dateRange]);
 
   useEffect(() => {
     if (userEmail && !companyId) {
@@ -353,17 +383,17 @@ const MapaCalor = () => {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 glass-card border-white/10" align="start">
-               <Calendar
-  mode="range"
-  selected={{ from: dateRange.from, to: dateRange.to }}
-  onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
-  numberOfMonths={typeof window !== 'undefined' && window.innerWidth < 768 ? 1 : 2}
-  locale={es}
-  fromYear={1960}
-  toYear={2030}
-  showPredefinedPeriods={true}
-  onPredefinedPeriodSelect={(range) => setDateRange(range)}
-/>
+                <Calendar
+                  mode="range"
+                  selected={{ from: dateRange.from, to: dateRange.to }}
+                  onSelect={handleDateRangeSelect}
+                  numberOfMonths={typeof window !== 'undefined' && window.innerWidth < 768 ? 1 : 2}
+                  locale={es}
+                  fromYear={1960}
+                  toYear={2030}
+                  showPredefinedPeriods={true}
+                  onPredefinedPeriodSelect={(range) => setDateRange(range)}
+                />
               </PopoverContent>
             </Popover>
 
@@ -498,6 +528,8 @@ const MapaCalor = () => {
                       const size = getPointSize(point.mentions);
                       const color = getPointColor(point.mentions);
                       const opacity = getPointOpacity(point.mentions);
+
+        
 
                       return (
                         <Marker
