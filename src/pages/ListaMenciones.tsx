@@ -81,7 +81,7 @@ const ListaMenciones = () => {
     const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
     const [selectedOrder, setSelectedOrder] = useState<string>('mas_nuevo');
     const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
-        from: new Date(1969, 0, 1),
+        from: new Date(2025, 0, 1),
         to: new Date()
     });
     const [currentPage, setCurrentPage] = useState(1);
@@ -336,7 +336,7 @@ const ListaMenciones = () => {
         setAuthorFilter('');
         setSelectedOrder('mas_nuevo');
         setDateRange({
-            from: new Date(1969, 0, 1),
+            from: new Date(2025, 0, 1),
             to: new Date()
         });
         setCurrentPage(1);
@@ -355,7 +355,7 @@ const ListaMenciones = () => {
     };
 
     const hasActiveFilters = selectedAlertId || selectedSource || selectedSentiment || selectedLanguage || selectedCountry || searchTerm || authorFilter ||
-        (dateRange.from && dateRange.from.getTime() !== new Date(1969, 0, 1).getTime()) ||
+        (dateRange.from && dateRange.from.getTime() !== new Date(2025, 0, 1).getTime()) ||
         (dateRange.to && dateRange.to.getTime() !== new Date().setHours(0, 0, 0, 0));
 
         const handleDateRangeSelect = (range: { from: Date | undefined; to: Date | undefined } | undefined) => {
@@ -447,7 +447,7 @@ const ListaMenciones = () => {
                                                 </span>
                                             )}
                                             {dateRange.from && dateRange.to &&
-                                                (dateRange.from.getTime() !== new Date(1969, 0, 1).getTime()) && (
+                                                (dateRange.from.getTime() !== new Date(2025, 0, 1).getTime()) && (
                                                     <span className="glass-effect px-2 py-1 rounded text-xs text-orange-400 border border-orange-400/30">
                                                         {format(dateRange.from, 'dd/MM/yyyy')} - {format(dateRange.to, 'dd/MM/yyyy')}
                                                     </span>

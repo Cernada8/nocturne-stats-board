@@ -46,10 +46,10 @@ const TopicCloud = () => {
     const [totalTopics, setTotalTopics] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
 
-    const [limit, setLimit] = useState(50);
+    const [limit, setLimit] = useState(25);
     const [minCount, setMinCount] = useState(2);
 
-    const limitOptions = [25, 50, 100];
+    const limitOptions = [25];
     const minCountOptions = [1, 2, 3, 5, 10];
 
     // Single color scheme with varying opacity
@@ -110,7 +110,7 @@ const TopicCloud = () => {
 
             if (selectedAlertId) {
                 // Fetch for single alert
-                const endpoint = `/api/stats/topics/cloud?company_id=${companyId}&alert_id=${selectedAlertId}&limit=${limit}&min_count=${minCount}`;
+                const endpoint = `/api/stats/topics/cloud?company_id=${companyId}&alert_id=${selectedAlertId}&limit=25&min_count=${minCount}`;
                 const response = await apiFetch(endpoint);
                 if (!response.ok) throw new Error('Error al obtener nube de temas');
 
@@ -119,7 +119,7 @@ const TopicCloud = () => {
             } else {
                 // Fetch for all alerts and combine
                 const promises = alerts.map(alert =>
-                    apiFetch(`/api/stats/topics/cloud?company_id=${companyId}&alert_id=${alert.id}&limit=${limit}&min_count=${minCount}`)
+                    apiFetch(`/api/stats/topics/cloud?company_id=${companyId}&alert_id=${alert.id}&limit=25&min_count=${minCount}`)
                         .then(res => res.json())
                         .then(data => data.data.topics || [])
                         .catch(() => [])
@@ -338,14 +338,7 @@ const TopicCloud = () => {
 
                         <Popover>
                             <PopoverTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="glass-effect border-white/10 hover:bg-white/10 text-white flex-1 sm:flex-none text-xs sm:text-sm"
-                                >
-                                    <Hash className="mr-2 h-4 w-4" />
-                                    Límite: {limit}
-                                </Button>
+                                
                             </PopoverTrigger>
                             <PopoverContent className="w-[160px] p-2 glass-card border-white/10">
                                 <div className="space-y-1">
@@ -420,10 +413,8 @@ const TopicCloud = () => {
                                     </p>
                                 </div>
                                 <div className="text-left sm:text-right w-full sm:w-auto">
-                                    <p className="text-white/70 text-xs sm:text-sm">Total de temas</p>
-                                    <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-cyan-400">
-                                        {totalTopics}
-                                    </p>
+                                    <p className="text-white/70 text-xs sm:text-sm">Temas más mencionados</p>
+
                                 </div>
                             </div>
 
@@ -509,12 +500,7 @@ const TopicCloud = () => {
                                                                                 background: topic.color
                                                                             }}
                                                                         ></div>
-                                                                        <span
-                                                                            className="text-xs sm:text-sm font-bold"
-                                                                            style={{
-                                                                                color: topic.color
-                                                                            }}
-                                                                        >
+                                                                        <span className="text-xs sm:text-sm font-bold text-white">
                                                                             {topic.count.toLocaleString()} menciones
                                                                         </span>
                                                                     </div>
