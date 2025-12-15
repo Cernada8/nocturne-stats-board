@@ -25,7 +25,7 @@ interface Channel {
   id: number;
   channel_name: string;
   thumbnail: string | null;
-  platform_slug: string;
+  platform: string;
 }
 
 const YouTubeAlertsTab = () => {
@@ -72,7 +72,7 @@ const YouTubeAlertsTab = () => {
       if (!response.ok) throw new Error('Error al cargar canales');
       
       const result = await response.json();
-      setChannels(result.data.channels.filter((ch: Channel) => ch.platform_slug === 'youtube'));
+      setChannels(result.data.channels.filter((ch: Channel) => ch.platform === 'youtube'));
     } catch (error: any) {
       toast.error(error.message || 'Error al cargar canales');
     }
