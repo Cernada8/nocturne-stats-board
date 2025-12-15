@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext'; 
 import { Input } from '@/components/ui/input';
 import { Loader2, Plus, Trash2, Youtube, MessageSquare, AlertCircle, Check, X, Save, Mail } from 'lucide-react';
 import { toast } from 'sonner';
@@ -32,6 +33,7 @@ const YouTubeAlertsTab = () => {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const { companyId } = useAuth();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -64,8 +66,9 @@ const YouTubeAlertsTab = () => {
   };
 
   const fetchChannels = async () => {
+    if (!companyId) return;
     try {
-      const response = await apiFetch('/api/social/channels');
+    const response = await apiFetch('/api/social/monitored?company_id=' + companyId);
       if (!response.ok) throw new Error('Error al cargar canales');
       
       const result = await response.json();
