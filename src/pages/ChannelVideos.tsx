@@ -46,7 +46,7 @@ const ChannelVideos = ({
   const [orderBy, setOrderBy] = useState('published_at');
   const [order, setOrder] = useState<'ASC' | 'DESC'>('DESC');
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
-  const videosPerPage = 12;
+  const videosPerPage = 25;
 
   useEffect(() => {
     fetchVideos();
@@ -104,7 +104,7 @@ const ChannelVideos = ({
       }
 
       const response = await apiFetch(
-        `/api/social/channel/${channelId}/sync-videos?${params.toString()}`,
+  `/api/social/channel/${channelId}/sync-videos?sync_all=true&${params.toString()}`,
         { method: 'POST' }
       );
       
