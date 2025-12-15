@@ -29,6 +29,7 @@ import ListaMenciones from "./pages/ListaMenciones";
 import Alertas from "./pages/Alertas";
 import ConectarRedes from "./pages/ConectarRedes";
 import ArgosAI from "./pages/ArgosAI";
+import ControlHaters from "./pages/ControlHaters";
 
 const queryClient = new QueryClient();
 
@@ -87,6 +88,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Rankings />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/control-haters" 
+              element={
+                <ProtectedRoute>
+                  <ControlHaters />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/channel-videos" 
+              element={
+                <ProtectedRoute>
+                  <ConectarRedes />
                 </ProtectedRoute>
               } 
             />

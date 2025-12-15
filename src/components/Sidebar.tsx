@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, TrendingUp, Trophy, Menu, X, MapIcon, Swords, CloudIcon, AlertCircle, Bell, Share2, Bot } from 'lucide-react';
+import { Home, TrendingUp, Trophy, Menu, X, MapIcon, Swords, CloudIcon, AlertCircle, Bell, Share2, Bot, ShareIcon, icons, ShieldAlert } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const Sidebar = () => {
@@ -58,6 +58,12 @@ const Sidebar = () => {
       icon: Share2,
       path: '/conectar-redes'
     },
+    {
+      id: 'controlHaters',
+      name: 'Control de Haters',
+      icon: ShieldAlert,
+      path: '/control-haters'
+    }
   ];
 
   const argosAIItem = {
