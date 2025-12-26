@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext'; 
 import { Input } from '@/components/ui/input';
-import { Loader2, Plus, Trash2, Youtube, MessageSquare, AlertCircle, Check, X, Save, Mail } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Loader2, Plus, Trash2, Youtube, MessageSquare, AlertCircle, Check, X, Save, Mail, Power, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiFetch } from '@/lib/api';
 
 interface MonitoringAlert {
   id: number;
+  company_id: number;
   name: string;
   alert_type: 'video_title_mention' | 'video_description_mention' | 'comment_mention' | 'comment_threshold';
   keywords: string[];
@@ -32,7 +35,8 @@ const YouTubeAlertsTab = () => {
   const [alerts, setAlerts] = useState<MonitoringAlert[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingAlert, setEditingAlert] = useState<MonitoringAlert | null>(null);
   const { companyId } = useAuth();
   
   const [formData, setFormData] = useState({
@@ -46,14 +50,21 @@ const YouTubeAlertsTab = () => {
   });
 
   useEffect(() => {
-    fetchAlerts();
-    fetchChannels();
-  }, []);
+    if (companyId) {
+      fetchAlerts();
+      fetchChannels();
+    }
+  }, [companyId]);
 
   const fetchAlerts = async () => {
+    if (!companyId) {
+      console.warn('No companyId available');
+      return;
+    }
+    
     setIsLoading(true);
     try {
-      const response = await apiFetch('/api/social/monitoring-alerts');
+      const response = await apiFetch(`/api/social/monitoring-alerts?company_id=${companyId}`);
       if (!response.ok) throw new Error('Error al cargar alertas');
       
       const result = await response.json();
@@ -68,7 +79,7 @@ const YouTubeAlertsTab = () => {
   const fetchChannels = async () => {
     if (!companyId) return;
     try {
-    const response = await apiFetch('/api/social/monitored?company_id=' + companyId);
+      const response = await apiFetch('/api/social/monitored?company_id=' + companyId);
       if (!response.ok) throw new Error('Error al cargar canales');
       
       const result = await response.json();
@@ -78,7 +89,12 @@ const YouTubeAlertsTab = () => {
     }
   };
 
-  const handleCreateAlert = async () => {
+  const handleCreateOrUpdateAlert = async () => {
+    if (!companyId) {
+      toast.error('No se ha identificado la compañía');
+      return;
+    }
+
     try {
       const keywordsArray = formData.keywords.split(',').map(k => k.trim()).filter(Boolean);
       
@@ -98,6 +114,7 @@ const YouTubeAlertsTab = () => {
       }
 
       const payload = {
+        company_id: parseInt(companyId),
         name: formData.name,
         alert_type: formData.alert_type,
         keywords: keywordsArray,
@@ -107,32 +124,54 @@ const YouTubeAlertsTab = () => {
         is_active: formData.is_active
       };
 
-      const response = await apiFetch('/api/social/monitoring-alerts', {
-        method: 'POST',
+      const url = editingAlert 
+        ? `/api/social/monitoring-alerts/${editingAlert.id}?company_id=${companyId}`
+        : `/api/social/monitoring-alerts?company_id=${companyId}`;
+      
+      const method = editingAlert ? 'PUT' : 'POST';
+
+      const response = await apiFetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Error al crear alerta');
+        throw new Error(error.message || 'Error al guardar alerta');
       }
 
-      toast.success('Alerta creada correctamente');
-      setShowCreateForm(false);
+      toast.success(editingAlert ? 'Alerta actualizada' : 'Alerta creada correctamente');
+      setIsDialogOpen(false);
       resetForm();
       fetchAlerts();
     } catch (error: any) {
-      toast.error(error.message || 'Error al crear alerta');
+      toast.error(error.message || 'Error al guardar alerta');
     }
   };
 
-  const handleUpdateAlert = async (alertId: number) => {
-    try {
-      const alert = alerts.find(a => a.id === alertId);
-      if (!alert) return;
+  const handleEdit = (alert: MonitoringAlert) => {
+    setEditingAlert(alert);
+    setFormData({
+      name: alert.name,
+      alert_type: alert.alert_type,
+      keywords: alert.keywords.join(', '),
+      threshold: alert.threshold || 5,
+      channels: alert.channels,
+      notification_emails: alert.notification_emails,
+      is_active: alert.is_active
+    });
+    setIsDialogOpen(true);
+  };
 
-      const response = await apiFetch(`/api/social/monitoring-alerts/${alertId}`, {
+  const handleToggleActive = async (alert: MonitoringAlert) => {
+    if (!companyId) {
+      toast.error('No se ha identificado la compañía');
+      return;
+    }
+
+    try {
+      const response = await apiFetch(`/api/social/monitoring-alerts/${alert.id}?company_id=${companyId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: !alert.is_active })
@@ -140,7 +179,7 @@ const YouTubeAlertsTab = () => {
 
       if (!response.ok) throw new Error('Error al actualizar alerta');
 
-      toast.success('Alerta actualizada');
+      toast.success(alert.is_active ? 'Alerta desactivada' : 'Alerta activada');
       fetchAlerts();
     } catch (error: any) {
       toast.error(error.message || 'Error al actualizar alerta');
@@ -148,10 +187,15 @@ const YouTubeAlertsTab = () => {
   };
 
   const handleDeleteAlert = async (alertId: number) => {
+    if (!companyId) {
+      toast.error('No se ha identificado la compañía');
+      return;
+    }
+
     if (!confirm('¿Estás seguro de eliminar esta alerta?')) return;
 
     try {
-      const response = await apiFetch(`/api/social/monitoring-alerts/${alertId}`, {
+      const response = await apiFetch(`/api/social/monitoring-alerts/${alertId}?company_id=${companyId}`, {
         method: 'DELETE'
       });
 
@@ -165,6 +209,7 @@ const YouTubeAlertsTab = () => {
   };
 
   const resetForm = () => {
+    setEditingAlert(null);
     setFormData({
       name: '',
       alert_type: 'video_title_mention',
@@ -196,13 +241,13 @@ const YouTubeAlertsTab = () => {
   };
 
   const getAlertTypeIcon = (type: MonitoringAlert['alert_type']) => {
-    if (type.includes('video')) return <Youtube className="h-4 w-4" />;
-    return <MessageSquare className="h-4 w-4" />;
+    if (type.includes('video')) return Youtube;
+    return MessageSquare;
   };
 
   return (
     <div className="space-y-4">
-      {/* Header con botón */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <p className="text-white/70 text-sm">
@@ -212,7 +257,7 @@ const YouTubeAlertsTab = () => {
         
         <Button
           onClick={() => {
-            setShowCreateForm(!showCreateForm);
+            setIsDialogOpen(true);
             resetForm();
           }}
           className="glass-effect border border-white/10 hover:bg-white/10 text-white"
@@ -222,270 +267,320 @@ const YouTubeAlertsTab = () => {
         </Button>
       </div>
 
-      {/* Formulario de creación */}
-      {showCreateForm && (
-        <div className="glass-card p-4 sm:p-6 border border-white/10 rounded-xl space-y-4">
-          <h3 className="text-lg font-bold text-white mb-4">Crear Nueva Alerta de YouTube</h3>
+      {/* Dialog para crear/editar */}
+      <Dialog open={isDialogOpen} onOpenChange={(open) => {
+        setIsDialogOpen(open);
+        if (!open) resetForm();
+      }}>
+        <DialogContent className="glass-card border-white/10 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-white text-xl">
+              {editingAlert ? 'Editar Alerta de YouTube' : 'Nueva Alerta de YouTube'}
+            </DialogTitle>
+          </DialogHeader>
 
-          {/* Nombre */}
-          <div>
-            <label className="block text-white/70 text-sm mb-2">Nombre de la alerta</label>
-            <Input
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Ej: Menciones de mi cliente en videos"
-              className="glass-card border-white/10 text-white placeholder:text-white/40"
-            />
-          </div>
-
-          {/* Tipo de alerta */}
-          <div>
-            <label className="block text-white/70 text-sm mb-2">Tipo de alerta</label>
-            <select
-              value={formData.alert_type}
-              onChange={(e) => setFormData({ ...formData, alert_type: e.target.value as any })}
-              className="w-full px-3 py-2 rounded-lg glass-card border border-white/10 text-white bg-slate-800/50"
-            >
-              <option value="video_title_mention" className="bg-slate-900">
-                📹 Mención en título de video
-              </option>
-              <option value="video_description_mention" className="bg-slate-900">
-                📝 Mención en descripción de video
-              </option>
-              <option value="comment_mention" className="bg-slate-900">
-                💬 Mención en comentarios (cualquier cantidad)
-              </option>
-              <option value="comment_threshold" className="bg-slate-900">
-                🔢 Umbral de comentarios con mención
-              </option>
-            </select>
-          </div>
-
-          {/* Keywords */}
-          <div>
-            <label className="block text-white/70 text-sm mb-2">
-              Palabras clave (separadas por comas)
-            </label>
-            <Input
-              value={formData.keywords}
-              onChange={(e) => setFormData({ ...formData, keywords: e.target.value })}
-              placeholder="Ej: mi cliente, nombre empresa, @usuario"
-              className="glass-card border-white/10 text-white placeholder:text-white/40"
-            />
-            <p className="text-white/50 text-xs mt-1">
-              La alerta se activará si se encuentra alguna de estas palabras
-            </p>
-          </div>
-
-          {/* Threshold */}
-          {formData.alert_type === 'comment_threshold' && (
-            <div>
-              <label className="block text-white/70 text-sm mb-2">
-                Umbral de comentarios
-              </label>
+          <div className="space-y-4 mt-4">
+            {/* Nombre */}
+            <div className="space-y-2">
+              <Label className="text-white">Nombre de la alerta</Label>
               <Input
-                type="number"
-                min="1"
-                value={formData.threshold}
-                onChange={(e) => setFormData({ ...formData, threshold: parseInt(e.target.value) })}
-                className="glass-card border-white/10 text-white"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Ej: Menciones de mi cliente en videos"
+                className="glass-card border-white/10 text-white placeholder:text-white/40"
               />
-              <p className="text-white/50 text-xs mt-1">
-                Alertar cuando un video tenga {formData.threshold} o más comentarios con las palabras clave
+            </div>
+
+            {/* Tipo de alerta */}
+            <div className="space-y-2">
+              <Label className="text-white">Tipo de alerta</Label>
+              <select
+                value={formData.alert_type}
+                onChange={(e) => setFormData({ ...formData, alert_type: e.target.value as any })}
+                className="w-full px-3 py-2 rounded-lg glass-card border border-white/10 text-white bg-slate-800/50"
+              >
+                <option value="video_title_mention" className="bg-slate-900">
+                  📹 Mención en título de video
+                </option>
+                <option value="video_description_mention" className="bg-slate-900">
+                  📝 Mención en descripción de video
+                </option>
+                <option value="comment_mention" className="bg-slate-900">
+                  💬 Mención en comentarios (cualquier cantidad)
+                </option>
+                <option value="comment_threshold" className="bg-slate-900">
+                  🔢 Umbral de comentarios con mención
+                </option>
+              </select>
+            </div>
+
+            {/* Keywords */}
+            <div className="space-y-2">
+              <Label className="text-white">
+                Palabras clave (separadas por comas)
+              </Label>
+              <Input
+                value={formData.keywords}
+                onChange={(e) => setFormData({ ...formData, keywords: e.target.value })}
+                placeholder="Ej: mi cliente, nombre empresa, @usuario"
+                className="glass-card border-white/10 text-white placeholder:text-white/40"
+              />
+              <p className="text-white/50 text-xs">
+                La alerta se activará si se encuentra alguna de estas palabras
               </p>
             </div>
-          )}
 
-          {/* Emails */}
-          <div>
-            <label className="block text-white/70 text-sm mb-2">
-              Emails de notificación (separados por comas)
-            </label>
-            <Input
-              value={formData.notification_emails}
-              onChange={(e) => setFormData({ ...formData, notification_emails: e.target.value })}
-              placeholder="admin@empresa.com, marketing@empresa.com"
-              className="glass-card border-white/10 text-white placeholder:text-white/40"
-            />
-          </div>
-
-          {/* Canales */}
-          <div>
-            <label className="block text-white/70 text-sm mb-2">
-              Canales a monitorizar
-            </label>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {channels.length === 0 ? (
-                <p className="text-white/50 text-sm">
-                  No hay canales de YouTube monitorizados
+            {/* Threshold */}
+            {formData.alert_type === 'comment_threshold' && (
+              <div className="space-y-2">
+                <Label className="text-white">Umbral de comentarios</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={formData.threshold}
+                  onChange={(e) => setFormData({ ...formData, threshold: parseInt(e.target.value) })}
+                  className="glass-card border-white/10 text-white"
+                />
+                <p className="text-white/50 text-xs">
+                  Alertar cuando un video tenga {formData.threshold} o más comentarios con las palabras clave
                 </p>
-              ) : (
-                channels.map(channel => (
-                  <div
-                    key={channel.id}
-                    onClick={() => toggleChannelSelection(channel.id)}
-                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
-                      formData.channels.includes(channel.id)
-                        ? 'bg-orange-500/20 border-2 border-orange-400/50'
-                        : 'glass-card border border-white/10 hover:bg-white/5'
-                    }`}
-                  >
-                    {channel.thumbnail && (
-                      <img
-                        src={channel.thumbnail}
-                        alt={channel.channel_name}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    )}
-                    <span className="text-white flex-1">{channel.channel_name}</span>
-                    {formData.channels.includes(channel.id) && (
-                      <Check className="h-5 w-5 text-orange-400" />
-                    )}
-                  </div>
-                ))
-              )}
+              </div>
+            )}
+
+            {/* Emails */}
+            <div className="space-y-2">
+              <Label className="text-white">
+                Emails de notificación (separados por comas)
+              </Label>
+              <Input
+                value={formData.notification_emails}
+                onChange={(e) => setFormData({ ...formData, notification_emails: e.target.value })}
+                placeholder="admin@empresa.com, marketing@empresa.com"
+                className="glass-card border-white/10 text-white placeholder:text-white/40"
+              />
+            </div>
+
+            {/* Canales */}
+            <div className="space-y-2">
+              <Label className="text-white">Canales a monitorizar</Label>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {channels.length === 0 ? (
+                  <p className="text-white/50 text-sm">
+                    No hay canales de YouTube monitorizados
+                  </p>
+                ) : (
+                  channels.map(channel => (
+                    <div
+                      key={channel.id}
+                      onClick={() => toggleChannelSelection(channel.id)}
+                      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
+                        formData.channels.includes(channel.id)
+                          ? 'bg-orange-500/20 border-2 border-orange-400/50'
+                          : 'glass-card border border-white/10 hover:bg-white/5'
+                      }`}
+                    >
+                      {channel.thumbnail && (
+                        <img
+                          src={channel.thumbnail}
+                          alt={channel.channel_name}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      )}
+                      <span className="text-white flex-1">{channel.channel_name}</span>
+                      {formData.channels.includes(channel.id) && (
+                        <Check className="h-5 w-5 text-orange-400" />
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Botones */}
+            <div className="flex gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+                className="flex-1 glass-effect border-white/10 text-white"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                onClick={handleCreateOrUpdateAlert}
+                className="flex-1 glass-effect bg-orange-500/20 border border-orange-500/30 text-white hover:bg-orange-500/30"
+              >
+                {editingAlert ? 'Actualizar' : 'Crear Alerta'}
+              </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
 
-          {/* Botones */}
-          <div className="flex gap-2 pt-4">
-            <Button
-              onClick={handleCreateAlert}
-              className="flex-1 glass-effect bg-orange-500/20 border border-orange-500/30 text-white hover:bg-orange-500/30"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Crear Alerta
-            </Button>
-            <Button
-              onClick={() => {
-                setShowCreateForm(false);
-                resetForm();
-              }}
-              variant="outline"
-              className="glass-effect border-white/10 hover:bg-white/10 text-white"
-            >
-              <X className="h-4 w-4 mr-2" />
-              Cancelar
-            </Button>
-          </div>
+      {/* Contador de alertas activas */}
+      <div className="flex justify-end">
+        <div className="glass-card px-3 py-1 border border-white/10">
+          <p className="text-xs text-white/70">
+            <span className="font-bold text-white">{alerts.filter(a => a.is_active).length}</span> activas de <span className="font-bold text-white">{alerts.length}</span>
+          </p>
         </div>
-      )}
+      </div>
 
       {/* Lista de alertas */}
-      <div className="glass-card p-4 sm:p-6 border border-white/10 rounded-xl">
-        <h3 className="text-lg font-bold text-white mb-4">Alertas de YouTube Configuradas</h3>
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 via-red-500/10 to-purple-500/10 blur-3xl rounded-3xl"></div>
 
-        {isLoading ? (
-          <div className="flex justify-center items-center h-40">
-            <Loader2 className="h-10 w-10 animate-spin text-orange-400" />
-          </div>
-        ) : alerts.length === 0 ? (
-          <div className="text-center py-12">
-            <Youtube className="h-16 w-16 text-white/30 mx-auto mb-4" />
-            <p className="text-white/70 text-lg mb-2">
-              No hay alertas de YouTube configuradas
-            </p>
-            <p className="text-white/50 text-sm">
-              Crea tu primera alerta para empezar a monitorizar menciones en YouTube
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {alerts.map(alert => (
-              <div
-                key={alert.id}
-                className={`p-4 rounded-xl border transition-all ${
-                  alert.is_active
-                    ? 'glass-card border-orange-400/30 bg-orange-500/5'
-                    : 'glass-card border-white/10 opacity-60'
-                }`}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      {getAlertTypeIcon(alert.alert_type)}
-                      <h4 className="text-base font-bold text-white">
-                        {alert.name}
-                      </h4>
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        alert.is_active
-                          ? 'bg-green-500/20 text-green-300 border border-green-400/30'
-                          : 'bg-gray-500/20 text-gray-300 border border-gray-400/30'
-                      }`}>
-                        {alert.is_active ? 'Activa' : 'Inactiva'}
-                      </span>
-                    </div>
-                    
-                    <p className="text-white/70 text-sm mb-2">
-                      {getAlertTypeLabel(alert.alert_type)}
-                    </p>
+        <div className="relative space-y-3">
+          {isLoading ? (
+            <div className="flex justify-center items-center h-[400px]">
+              <div className="text-center space-y-4">
+                <Loader2 className="h-16 w-16 animate-spin text-orange-400 mx-auto" />
+                <p className="text-white/70 text-sm">Cargando alertas de YouTube...</p>
+              </div>
+            </div>
+          ) : alerts.length === 0 ? (
+            <div className="flex flex-col justify-center items-center h-[400px] text-white/70 space-y-4 px-4">
+              <Youtube className="h-16 w-16 text-white/30" />
+              <div className="text-center">
+                <p className="text-lg font-medium mb-1">
+                  No hay alertas de YouTube configuradas
+                </p>
+                <p className="text-sm text-white/50">
+                  Crea tu primera alerta para empezar a monitorizar menciones en YouTube
+                </p>
+              </div>
+            </div>
+          ) : (
+            alerts.map(alert => {
+              const AlertIcon = getAlertTypeIcon(alert.alert_type);
+              
+              return (
+                <div
+                  key={alert.id}
+                  className={`glass-card p-5 border transition-all duration-300 rounded-xl group ${
+                    alert.is_active ? 'border-white/10 hover:bg-white/5' : 'border-white/5 bg-white/[0.02] opacity-60'
+                  }`}
+                >
+                  <div className="flex flex-col gap-4">
+                    {/* Header con nombre y acciones */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div className={`p-3 glass-effect rounded-lg border ${alert.is_active ? 'border-white/20' : 'border-white/10'}`}>
+                          <AlertIcon className="h-5 w-5 text-orange-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg font-bold text-white truncate">
+                            {alert.name}
+                          </h3>
+                          <p className="text-sm text-white/70 mt-0.5">
+                            {getAlertTypeLabel(alert.alert_type)}
+                          </p>
+                        </div>
+                      </div>
 
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {alert.keywords.map((keyword, idx) => (
-                        <span
-                          key={idx}
-                          className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30"
+                      {/* Botones de acción */}
+                      <div className="flex gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleToggleActive(alert)}
+                          className={`h-8 w-8 p-0 ${
+                            alert.is_active 
+                              ? 'text-green-400 hover:bg-green-500/20' 
+                              : 'text-white/50 hover:bg-white/10'
+                          }`}
                         >
-                          {keyword}
-                        </span>
-                      ))}
+                          <Power className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleEdit(alert)}
+                          className="h-8 w-8 p-0 text-blue-400 hover:bg-blue-500/20"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteAlert(alert.id)}
+                          className="h-8 w-8 p-0 text-red-400 hover:bg-red-500/20"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
 
-                    {alert.threshold && (
-                      <p className="text-white/60 text-sm mb-2">
-                        Umbral: {alert.threshold} comentarios
-                      </p>
-                    )}
+                    {/* Información de la alerta */}
+                    <div className="glass-effect rounded-lg p-4 border border-white/10">
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div>
+                          <p className="text-xs text-white/50 uppercase tracking-wide mb-1">Palabras clave</p>
+                          <div className="flex flex-wrap gap-1">
+                            {alert.keywords.map((keyword, idx) => (
+                              <span
+                                key={idx}
+                                className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30"
+                              >
+                                {keyword}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
 
-                    <div className="flex items-center gap-2 text-white/50 text-xs mb-2">
-                      <Mail className="h-3 w-3" />
-                      <span>{alert.notification_emails}</span>
+                        {alert.threshold && (
+                          <div>
+                            <p className="text-xs text-white/50 uppercase tracking-wide mb-1">Umbral</p>
+                            <p className="text-sm text-white font-medium">
+                              {alert.threshold} comentarios
+                            </p>
+                          </div>
+                        )}
+
+                        <div>
+                          <p className="text-xs text-white/50 uppercase tracking-wide mb-1">Última activación</p>
+                          <p className="text-sm text-white font-medium">
+                            {alert.last_triggered 
+                              ? new Date(alert.last_triggered).toLocaleDateString('es-ES')
+                              : 'Nunca'}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs text-white/50 uppercase tracking-wide mb-1">Veces activada</p>
+                          <p className="text-sm font-bold text-cyan-400">
+                            {alert.trigger_count}
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
-                    {alert.channel_names && (
-                      <div className="flex flex-wrap gap-1 text-xs text-white/50">
-                        <span>Canales:</span>
-                        {alert.channel_names.map((name, idx) => (
-                          <span key={idx}>
-                            {name}{idx < alert.channel_names!.length - 1 ? ',' : ''}
-                          </span>
-                        ))}
+                    {/* Emails y canales */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-white/50 shrink-0" />
+                        <p className="text-xs text-white/70">
+                          {alert.notification_emails}
+                        </p>
                       </div>
-                    )}
 
-                    {alert.trigger_count > 0 && (
-                      <div className="mt-2 text-xs text-orange-400">
-                        ⚡ Activada {alert.trigger_count} veces
-                        {alert.last_triggered && ` · Última: ${new Date(alert.last_triggered).toLocaleString('es-ES')}`}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => handleUpdateAlert(alert.id)}
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 glass-effect border-white/10 hover:bg-white/10 text-white"
-                      title={alert.is_active ? 'Desactivar' : 'Activar'}
-                    >
-                      {alert.is_active ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
-                    </Button>
-                    
-                    <Button
-                      onClick={() => handleDeleteAlert(alert.id)}
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 glass-effect border-red-400/30 hover:bg-red-500/20 text-red-400"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                      {alert.channel_names && alert.channel_names.length > 0 && (
+                        <div className="flex items-start gap-2">
+                          <Youtube className="h-4 w-4 text-white/50 shrink-0 mt-0.5" />
+                          <p className="text-xs text-white/70">
+                            <span className="text-white/50">Canales: </span>
+                            {alert.channel_names.join(', ')}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              );
+            })
+          )}
+        </div>
       </div>
     </div>
   );
